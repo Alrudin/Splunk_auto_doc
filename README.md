@@ -78,9 +78,15 @@ Key features:
    # Set up pre-commit hooks
    pre-commit install
    
-   # Run the API server
+   # Run the API server (option 1)
+   make api
+   
+   # Run the API server (option 2)
    cd backend
    python -m app.main
+   
+   # Run the API server (option 3)
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
 2. **Database setup**
@@ -113,7 +119,10 @@ Key features:
 ### API Usage Example
 
 ```bash
-# Health check
+# Health check (v1 endpoint)
+curl http://localhost:8000/v1/health
+
+# Health check (legacy endpoint)
 curl http://localhost:8000/health/
 
 # Upload Splunk configuration (future milestone)

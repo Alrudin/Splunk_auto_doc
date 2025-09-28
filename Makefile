@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test
+.PHONY: help install dev test lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -10,6 +10,9 @@ install: ## Install dependencies
 dev: ## Set up development environment
 	pip install -e ".[dev]"
 	pre-commit install
+
+api: ## Run the API server in development mode
+	cd backend && python -m app.main
 
 test: ## Run tests
 	python backend/tests/test_basic.py
