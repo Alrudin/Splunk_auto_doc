@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check clean docker-up docker-down
+.PHONY: help install dev test lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -48,10 +48,22 @@ clean: ## Clean up generated files
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 
 docker-up: ## Start development environment with Docker Compose
-	docker-compose up -d
+	docker compose up -d
 
 docker-down: ## Stop development environment
-	docker-compose down
+	docker compose down
 
 docker-logs: ## Show Docker Compose logs
-	docker-compose logs -f
+	docker compose logs -f
+
+docker-build: ## Build Docker images
+	docker compose build --no-cache
+
+docker-restart: ## Restart all services
+	docker compose restart
+
+docker-clean: ## Stop and remove all containers, networks, and volumes  
+	docker compose down -v --remove-orphans
+
+docker-test: ## Test Docker Compose configuration
+	./test-docker-compose.sh
