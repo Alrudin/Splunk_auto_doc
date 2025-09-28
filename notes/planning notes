@@ -1,0 +1,419 @@
+High-Level Goals
+
+Parse Splunk .conf files (apps and Deployment Server) to derive Host → App → Input → (Sourcetype, Index, Dest Index) mappings, including props/transforms routing and serverclass client membership.
+
+Support multiple uploads (full etc/ directories, additional app bundles, or single confs) and recompute paths incrementally.
+
+Provide a React web UI to upload, browse, search, and visualize data paths and effective configuration over time.
+
+System Design (Overview)
+
+Core idea: Normalize all .conf content into a relational model, then build a deterministic resolution engine that computes final routings per host based on Splunk’s precedence rules.
+
+Major components
+
+Web UI (React + Tailwind): upload wizard, parsing job status, host/app browser, data-path explorer, diffs, and visual graphs.
+
+API (Python/FastAPI): receives uploads, stores files, runs parsing/resolve jobs, exposes query endpoints.
+
+Parser/Resolver (Python):
+
+Robust Splunk .conf parser (stanzas, key merging, comments, repeated keys).
+
+Precedence/overlay engine (default vs local, system vs app, DS intended state).
+
+Routing resolution: Inputs → Props (index-time) → Transforms (index routing / sourcetype reassignment) → Outputs (indexer groups).
+
+Serverclass membership resolution for Deployment Server.
+
+DB (PostgreSQL): normalized storage (configs + computed edges) with versioning for historical compares.
+
+Object Storage: raw upload blobs (e.g., local disk or S3-compatible).
+
+Task runner (optional but recommended): Celery/Arq/RQ to run parse/resolve jobs off the request thread.
+
+Architecture Pattern
+
+Backend: FastAPI (REST), service-layer pattern; background worker for heavy parsing.
+
+Frontend: React SPA with feature-based folder structure; state via React Query + URL params.
+
+Data pipeline: ETL style (Extract → Normalize → Resolve → Persist results).
+
+Idempotent versioning: each upload = IngestionRun; results are immutable snapshots with parent links for diffs.
+
+Data Flow (End-to-End)
+
+Upload: User drops a tar/zip or a directory (client-side zips); selects “Deployment Server etc” or “Generic Splunk etc/App”.
+
+Ingest:
+
+API stores blob and creates IngestionRun row.
+
+Worker unpacks, fingerprints files, and parses .conf.
+
+Normalize:
+
+Persist stanzas into typed tables: inputs, props, transforms, indexes, outputs, serverclasses, etc.
+
+Record source path and scope (system/apps/*/(default|local)).
+
+Resolve (per host):
+
+Compute host membership to serverclasses (based on serverclass.conf whitelist/blacklist, machineTypes, DNS/regex).
+
+Derive effective app set for each host (apps assigned by serverclasses).
+
+Merge precedence: system/local > app/local > app/default > system/default. (User context omitted unless provided.)
+
+Build Input → Sourcetype → Index:
+
+Start with inputs.conf (stanza-level index, sourcetype, source/path, UDP/TCP/scripted).
+
+Apply props index-time rules (e.g., TRANSFORMS-... & SEDCMD affecting routing).
+
+Apply transforms: routing via DEST_KEY = _MetaData:Index or MetaData:Index to override index.
+
+If sourcetype rename via transforms/props (REPORT/rename), update.
+
+Consider outputs.conf to identify indexer clusters/target groups (for completeness of “path”).
+
+Persist Results:
+
+host_data_paths table with edges: host -> input -> sourcetype (effective) -> index (effective) -> indexer_target.
+
+Store evaluation notes (rule hits, precedence, conflicts).
+
+Serve UI:
+
+Browse by Host / App / Index / Sourcetype.
+
+Graph and tables; search, filters, history & diffs across IngestionRuns.
+
+Technical Stack
+
+Frontend
+
+React + Vite
+
+TailwindCSS (+ Headless UI or shadcn/ui if desired)
+
+React Router, React Query (TanStack), Zod (client validation)
+
+d3 or Cytoscape.js for graph view
+
+Backend
+
+Python 3.11+
+
+FastAPI (pydantic v2)
+
+Optional worker: Celery + Redis (or Arq/RQ)
+
+File unpack: libarchive/shutil, hashing with xxhash
+
+Parsing: custom parser (see below) or configobj as a helper, with Splunk quirks handled explicitly
+
+Storage
+
+PostgreSQL 15+
+
+Object storage: local disk volume or S3-compatible (MinIO)
+
+Packaging/Deploy
+
+Docker Compose (api, worker, db, redis, ui, minio)
+
+Tracing/metrics: OpenTelemetry, Prometheus
+
+Key Parsing & Resolution Rules (Splunk-specific)
+
+Config layering & precedence:
+
+Search order: system/local → app/local → user/local (if applicable) → app/default → system/default.
+
+Merge behavior: later wins; stanza/attribute level override.
+
+inputs.conf:
+
+Stanza types: monitor://, tcp://, udp://, splunktcp://, script://, WinEventLog://, etc.
+
+Keys: index, sourcetype, disabled, blacklist/whitelist, host, crcSalt, ignoreOlderThan, initCrcLength, recursive, etc.
+
+props.conf (index-time relevant):
+
+TRANSFORMS-<name> triggers transforms at index time.
+
+SEDCMD-<name> modifies raw, can matter for downstream matching.
+
+NOTE: REPORT- rules are search-time; for sourcetype renames at index-time, rely on transforms.
+
+transforms.conf:
+
+Routing with DEST_KEY=_MetaData:Index or MetaData:Index, REGEX, FORMAT = <index>.
+
+Sourcetype rewrites via DEST_KEY = MetaData:Sourcetype.
+
+outputs.conf:
+
+Target groups / indexer discovery; capture as part of “data path” metadata (does not change the index name but indicates destination topology).
+
+indexes.conf:
+
+Index existence and metadata (frozen/thawed irrelevant for routing but handy for validation).
+
+Deployment Server (serverclass.conf):
+
+Resolve client membership by regex/wildcard on hostname, DNS, IP, machineTypes, server roles.
+
+Resulting app set per host = union of assigned serverclasses (minus blacklists).
+
+Conflict resolution:
+
+When multiple rules match, record hit order and winning reason (precedence or first-match depending on Splunk semantics for that key).
+
+Edge cases:
+
+Tokens/macros inside conf (rare): flag as “dynamic” and show unresolved token.
+
+Local overrides on clients not present in DS: model separately if a client etc dump is provided.
+
+Disabled stanzas: exclude unless explicitly included via filter.
+
+Database Design (ERD Summary)
+
+Core entities
+
+ingestion_runs (id, type: ds_etc | instance_etc | app_bundle | single_conf, created_at, parent_run_id, notes)
+
+files (id, run_id, path, sha256, size)
+
+stanzas (id, run_id, file_id, conf_type, name, scope, app, layer, raw_kv jsonb)
+
+Typed views (or materialized tables) derived from stanzas:
+
+inputs (id, run_id, stanza_type, source_path, index, sourcetype, disabled, kv jsonb, app, layer)
+
+props (id, run_id, sourcetype_or_source, transforms_list, sedcmds, kv)
+
+transforms (id, run_id, name, dest_key, regex, format, writes_meta_index bool, writes_meta_sourcetype bool, kv)
+
+indexes (id, run_id, name, kv)
+
+outputs (id, run_id, group, servers[], kv)
+
+serverclasses (id, run_id, name, whitelist[], blacklist[], app_assignments[], restart_flags, kv)
+
+Resolution products:
+
+hosts (id, hostname, facts jsonb)
+
+host_memberships (host_id, run_id, serverclass_id, matched_on, rule_excerpt)
+
+host_apps (host_id, run_id, app, source = serverclass|local, precedence_note)
+
+host_effective_inputs (id, host_id, run_id, input_id, effective_index, effective_sourcetype, transform_chain[], outputs_group, evidence jsonb)
+
+host_data_paths (id, host_id, run_id, source_path, sourcetype, index, index_targets[], graph_hash)
+
+Indexes
+
+GIN on jsonb for raw_kv/evidence
+
+B-tree on (run_id, app, conf_type, stanza name)
+
+Resolver Algorithm (Deterministic)
+
+Hosts: from serverclass filters derive an explicit set of hosts (store regex patterns and concrete matches).
+
+Apps per Host: union of serverclass apps (respect blacklist/whitelist ordering).
+
+Effective Conf: build a virtual layered tree per host:
+
+Gather stanzas from system/*, apps/* within that host’s app set.
+
+Apply precedence to produce effective inputs/props/transforms maps.
+
+Compute Routing per effective input:
+
+Start: index = inputs.index || default_index, sourcetype = inputs.sourcetype || guessed.
+
+Apply props’ TRANSFORMS-* in stanza order.
+
+For each transform:
+
+If DEST_KEY=_MetaData:Index and REGEX matches, set index = FORMAT.
+
+If DEST_KEY=MetaData:Sourcetype, update sourcetype.
+
+Assign outputs_group if present.
+
+Emit host_data_path edge with evidence chain (which stanza/line caused changes).
+
+Validity checks:
+
+Warn if effective index not found in indexes.conf.
+
+Flag disabled inputs/stanzas.
+
+Note ambiguous matches (multiple transforms hit the same event).
+
+API Design (REST, versioned /v1)
+
+POST /uploads (multipart): {type, label} → returns run_id.
+
+GET /runs/:id → status, statistics.
+
+POST /runs/:id/parse → (usually auto-triggered on upload).
+
+GET /runs/:id/diff/:otherRunId
+
+GET /hosts?search=&runId= → list.
+
+GET /hosts/:hostId/paths?runId= → table of source_path, sourcetype, index, outputs_group, evidence.
+
+GET /apps?runId=, GET /indexes?runId=, GET /serverclasses?runId=
+
+GET /graph/host/:hostId?runId= → returns nodes/edges for visualization.
+
+GET /evidence/:pathId → full rule chain (props/transforms/lines).
+
+Auth: JWT (cookie w/ httpOnly, SameSite=Lax), users/roles (viewer, contributor, admin).
+
+Frontend UX (React + Tailwind)
+
+Upload Wizard
+
+Dropzone → choose type (Deployment Server etc, Instance etc, App bundle, Single conf).
+
+Show parse job progress & summary (apps found, inputs, props/transforms counts).
+
+Explore
+
+Tabs: Hosts, Apps, Indexes, Serverclasses, Runs.
+
+Host detail:
+
+“Effective apps” list with precedence notes.
+
+Data Path table (sortable/filterable).
+
+“Evidence” drawer per row (stanza trail, matched regex, winning precedence).
+
+Graph view of source → sourcetype → index → indexer targets.
+
+Diffs
+
+Compare two runs: counts changed, new/removed apps, inputs index changes, sourcetype changes.
+
+Search
+
+Global search by sourcetype, index, path, app, or regex.
+
+Implementation Milestones
+
+M1 – Skeleton & Upload
+
+Docker Compose (ui, api, worker, db, redis, minio)
+
+FastAPI endpoints: uploads, runs
+
+Frontend upload form + status page
+
+Store blobs, create ingestion_runs
+
+M2 – Parser & Normalization
+
+Implement .conf tokenizer/lexer:
+
+Handle comments (#), continuation, repeated keys, [] stanza headers, inline comments.
+
+Preserve order for props/transforms sequences.
+
+Persist to stanzas and typed views (inputs, props, transforms, …)
+
+M3 – DS Serverclass Resolution
+
+Parse serverclass.conf
+
+Build host membership engine (regex, wildcards, machineTypes)
+
+Materialize host_memberships, host_apps
+
+M4 – Routing Resolver
+
+Implement precedence layering & effective maps
+
+Apply transforms index-time routing & sourcetype rewrite
+
+Emit host_data_paths with evidence chain
+
+APIs to fetch tables/graphs
+
+M5 – UI Explore & Graph
+
+Host/App/Index browsers, path tables, evidence drawer
+
+Graph visualization (Cytoscape.js)
+
+Filters, search
+
+M6 – Diffs & Validation
+
+Run-to-run diffing and validation warnings (unknown index, disabled inputs)
+
+Export CSV/JSON of paths
+
+M7 – Hardening
+
+AuthZ, audit logs
+
+Large upload handling & streaming
+
+Unit + property tests for parser and resolver (fixtures from real Splunk apps)
+
+Testing Strategy
+
+Golden fixtures: curated etc/ samples (HF, UF, Indexer, DS) with expected outputs.
+
+Property tests: precedence invariants, transform routing determinism.
+
+Performance: runs with 10k+ stanzas; ensure parse in seconds and queries in ms (DB indexes).
+
+Observability & Ops
+
+Structured logs (JSON), request IDs
+
+Metrics: parse duration, stanza counts, resolver timings
+
+Health checks & readiness endpoints
+
+Backup strategy for DB + object store
+
+Security & Privacy
+
+No secrets in uploads are required; still treat all inputs as sensitive.
+
+Virus scan archives (optional).
+
+Access control per project/workspace; signed URLs for downloads.
+
+Notes on Splunk Nuances We Handle
+
+Index-time vs search-time: only index-time affects routing; we’ll clearly label REPORT (search-time) items as informational only.
+
+TRANSFORMS-* order matters; we preserve stanza order and record the first winning transform per convention.
+
+Tokens/macros inside .conf: flagged as unresolved dynamic, surfaced in evidence.
+
+Outputs groups don’t rename the index but help visualize destination clusters.
+
+Deliverables You’ll Get Early
+
+Containerized dev stack
+
+A minimal UI to upload and see parsed counts
+
+A resolvable example producing a concrete table like:
+
+Host	Source Path	Effective Sourcetype	Effective Index	Outputs Group	Evidence
