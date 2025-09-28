@@ -56,13 +56,16 @@ Key features:
 2. **Start the development environment**
    ```bash
    # Start all services with Docker Compose
-   docker-compose up -d
+   docker compose up -d
+   
+   # Or use the Makefile
+   make docker-up
    ```
 
 3. **Access the application**
    - API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
-   - Frontend: http://localhost:3000 (when implemented)
+   - Frontend: http://localhost:3000 (placeholder with service status)
    - MinIO Console: http://localhost:9001 (admin/password)
 
 ### Local Development
