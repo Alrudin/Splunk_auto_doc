@@ -13,8 +13,16 @@ def test_app_structure_exists() -> None:
     assert app_dir.exists(), "app directory should exist"
     assert (app_dir / "__init__.py").exists(), "app/__init__.py should exist"
     assert (app_dir / "main.py").exists(), "app/main.py should exist"
-    assert (app_dir / "config.py").exists(), "app/config.py should exist"
-    assert (app_dir / "health.py").exists(), "app/health.py should exist"
+    assert (app_dir / "core" / "config.py").exists(), "app/core/config.py should exist"
+    assert (app_dir / "core" / "db.py").exists(), "app/core/db.py should exist"
+    assert (app_dir / "api" / "v1" / "health.py").exists(), "app/api/v1/health.py should exist"
+    assert (app_dir / "health.py").exists(), "app/health.py should exist (legacy)"
+    
+    # Check that required directories exist
+    assert (app_dir / "models").exists(), "app/models directory should exist"
+    assert (app_dir / "schemas").exists(), "app/schemas directory should exist"
+    assert (app_dir / "models" / "__init__.py").exists(), "app/models/__init__.py should exist"
+    assert (app_dir / "schemas" / "__init__.py").exists(), "app/schemas/__init__.py should exist"
 
 
 def test_python_imports() -> None:
@@ -43,8 +51,14 @@ def test_app_can_be_imported() -> None:
         with open(backend_dir / "app" / "main.py") as f:
             compile(f.read(), "app/main.py", "exec")
             
-        with open(backend_dir / "app" / "config.py") as f:
-            compile(f.read(), "app/config.py", "exec")
+        with open(backend_dir / "app" / "core" / "config.py") as f:
+            compile(f.read(), "app/core/config.py", "exec")
+            
+        with open(backend_dir / "app" / "core" / "db.py") as f:
+            compile(f.read(), "app/core/db.py", "exec")
+            
+        with open(backend_dir / "app" / "api" / "v1" / "health.py") as f:
+            compile(f.read(), "app/api/v1/health.py", "exec")
             
         with open(backend_dir / "app" / "health.py") as f:
             compile(f.read(), "app/health.py", "exec")
