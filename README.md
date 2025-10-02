@@ -91,8 +91,15 @@ Key features:
 
 2. **Database setup**
    ```bash
-   # Run database migrations (future milestone)
+   # Run database migrations
+   cd backend
    alembic upgrade head
+   
+   # Check current migration version
+   alembic current
+   
+   # View migration history
+   alembic history
    ```
 
 3. **Run tests**
@@ -133,6 +140,49 @@ curl -X POST "http://localhost:8000/v1/uploads" \
 # List ingestion runs (future milestone)
 curl http://localhost:8000/v1/runs
 ```
+
+## Database Schema
+
+### Core Tables
+
+The application uses PostgreSQL for persistent storage with Alembic for migration management.
+
+**ingestion_runs** - Tracks uploaded configuration bundles
+- `id` (integer, primary key) - Unique identifier
+- `created_at` (timestamp) - Creation timestamp
+- `type` (enum) - Upload type: `ds_etc`, `instance_etc`, `app_bundle`, `single_conf`
+- `label` (string, nullable) - Optional human-readable label
+- `status` (enum) - Processing status: `pending`, `stored`, `failed`, `complete`
+- `notes` (text, nullable) - Optional notes
+
+**files** - Tracks uploaded files within ingestion runs
+- `id` (integer, primary key) - Unique identifier
+- `run_id` (integer, foreign key) - References `ingestion_runs.id`
+- `path` (string) - Archive filename or file path
+- `sha256` (string) - SHA256 hash for deduplication
+- `size_bytes` (bigint) - File size in bytes
+- `stored_object_key` (string) - Blob storage reference
+
+### Running Migrations
+
+Migrations are managed with Alembic and located in `backend/alembic/versions/`.
+
+```bash
+# Apply all pending migrations
+cd backend
+alembic upgrade head
+
+# Revert last migration
+alembic downgrade -1
+
+# View current version
+alembic current
+
+# View migration history
+alembic history
+```
+
+For development, ensure PostgreSQL is running (via Docker Compose) before applying migrations.
 
 ---
 

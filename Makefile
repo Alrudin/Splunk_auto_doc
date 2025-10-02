@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api
+.PHONY: help install dev test lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api migrate migrate-test
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -70,3 +70,9 @@ docker-clean: ## Stop and remove all containers, networks, and volumes
 
 docker-test: ## Test Docker Compose configuration
 	./test-docker-compose.sh
+
+migrate: ## Run database migrations
+	cd backend && alembic upgrade head
+
+migrate-test: ## Test database migrations
+	cd backend && python scripts/test_migration.py
