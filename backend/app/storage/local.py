@@ -129,15 +129,15 @@ class LocalStorageBackend(StorageBackend):
         Raises:
             StorageError: If key is invalid or attempts traversal
         """
-        # Remove leading slashes and resolve relative paths
+        # Remove leading slashes
         clean_key = key.lstrip("/")
+
+        # Empty key after stripping is invalid
+        if not clean_key:
+            raise StorageError(f"Invalid storage key: '{key}' is empty")
 
         # Check for directory traversal attempts
         if ".." in Path(clean_key).parts:
             raise StorageError(f"Invalid storage key: '{key}' contains '..'")
-
-        # Ensure key is relative
-        if Path(clean_key).is_absolute():
-            raise StorageError(f"Invalid storage key: '{key}' is absolute")
 
         return clean_key
