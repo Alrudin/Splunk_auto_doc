@@ -132,10 +132,17 @@ curl http://localhost:8000/v1/health
 # Health check (legacy endpoint)
 curl http://localhost:8000/health/
 
-# Upload Splunk configuration (future milestone)
+# Upload Splunk configuration
 curl -X POST "http://localhost:8000/v1/uploads" \
-     -H "Content-Type: multipart/form-data" \
-     -F "file=@splunk_etc.tar.gz"
+     -F "file=@splunk_etc.tar.gz" \
+     -F "type=ds_etc" \
+     -F "label=Production Deployment Server" \
+     -F "notes=Weekly configuration backup"
+
+# Upload with minimal parameters
+curl -X POST "http://localhost:8000/v1/uploads" \
+     -F "file=@my_app.tar.gz" \
+     -F "type=app_bundle"
 
 # List ingestion runs (future milestone)
 curl http://localhost:8000/v1/runs
