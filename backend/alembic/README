@@ -1,0 +1,10 @@
+Generic single-database configuration for Splunk Auto Doc.
+
+This directory contains Alembic migration scripts for managing database schema changes.
+
+Common commands:
+- `alembic upgrade head` - Apply all pending migrations
+- `alembic downgrade -1` - Revert the last migration
+- `alembic revision --autogenerate -m "description"` - Generate a new migration
+- `alembic current` - Show current migration version
+- `alembic history` - Show migration history
