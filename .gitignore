@@ -163,3 +163,7 @@ yarn-error.log*
 
 # Docker
 .dockerignore
+
+# Database files
+*.db
+test.db
