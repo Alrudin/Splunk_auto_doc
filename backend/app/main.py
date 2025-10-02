@@ -2,14 +2,15 @@
 
 import logging
 import time
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
 
-from app.core.config import get_settings
 from app.api.v1.health import router as health_router
+from app.api.v1.runs import router as runs_router
 from app.api.v1.uploads import router as uploads_router
+from app.core.config import get_settings
 from app.health import router as legacy_health_router
 
 # Setup structured logging
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(health_router, prefix="/v1", tags=["health"])
     app.include_router(uploads_router, prefix="/v1", tags=["uploads"])
+    app.include_router(runs_router, prefix="/v1", tags=["runs"])
     app.include_router(legacy_health_router, prefix="/health", tags=["health-legacy"])
 
     return app
