@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     )
     s3_bucket: str = Field(default="", description="S3 bucket name")
     s3_endpoint_url: str = Field(default="", description="S3 endpoint URL (for MinIO)")
+    aws_access_key_id: str = Field(default="", description="AWS access key ID")
+    aws_secret_access_key: str = Field(default="", description="AWS secret access key")
 
     # API
     api_v1_prefix: str = "/v1"
