@@ -126,3 +126,22 @@ def sample_upload_metadata() -> dict:
         "label": "Test Upload",
         "notes": "Test notes for upload",
     }
+
+
+@pytest.fixture
+def large_file() -> io.BytesIO:
+    """Create a large file (5MB) for performance testing."""
+    size_mb = 5
+    content = b"x" * (size_mb * 1024 * 1024)
+    return io.BytesIO(content)
+
+
+@pytest.fixture
+def sample_files() -> list[tuple[str, bytes]]:
+    """Provide multiple sample files for batch testing."""
+    return [
+        ("config1.tar.gz", b"Config file 1 content"),
+        ("config2.tar.gz", b"Config file 2 content"),
+        ("config3.tar.gz", b"Config file 3 content"),
+    ]
+

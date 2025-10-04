@@ -301,3 +301,57 @@ class TestStorageIntegration:
 
         assert len(retrieved_content) == len(content)
         assert retrieved_content == content
+
+    def test_delete_blob(self, local_backend):
+        """Test blob deletion."""
+        key = "delete_test.txt"
+        content = b"Content to delete"
+
+        # Store and verify
+        local_backend.store_blob(io.BytesIO(content), key)
+        assert local_backend.exists(key)
+
+        # Delete and verify
+        local_backend.delete_blob(key)
+        assert not local_backend.exists(key)
+
+    def test_retrieve_nonexistent_blob(self, local_backend):
+        """Test retrieving a blob that doesn't exist."""
+        with pytest.raises(StorageError):
+            local_backend.retrieve_blob("nonexistent_key.txt")
+
+    def test_delete_nonexistent_blob(self, local_backend):
+        """Test deleting a blob that doesn't exist."""
+        # Should raise StorageError or handle gracefully
+        try:
+            local_backend.delete_blob("nonexistent_key.txt")
+        except StorageError:
+            pass  # Expected behavior
+
+    def test_storage_key_with_nested_paths(self, local_backend):
+        """Test storing blobs with deeply nested paths."""
+        key = "level1/level2/level3/deep_file.txt"
+        content = b"Deep nested content"
+
+        stored_key = local_backend.store_blob(io.BytesIO(content), key)
+        assert stored_key == key
+        assert local_backend.exists(key)
+
+        retrieved = local_backend.retrieve_blob(key)
+        assert retrieved.read() == content
+        retrieved.close()
+
+    def test_binary_data_integrity(self, local_backend):
+        """Test that binary data is stored and retrieved without corruption."""
+        # Create binary data with various byte values
+        content = bytes(range(256))  # All possible byte values
+        key = "binary_test.bin"
+
+        local_backend.store_blob(io.BytesIO(content), key)
+        retrieved = local_backend.retrieve_blob(key)
+        retrieved_content = retrieved.read()
+        retrieved.close()
+
+        assert retrieved_content == content
+        assert len(retrieved_content) == 256
+

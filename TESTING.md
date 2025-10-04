@@ -84,7 +84,54 @@ def sample_tar_file():
 @pytest.fixture
 def sample_upload_metadata():
     """Sample metadata for upload tests."""
+
+@pytest.fixture
+def large_file():
+    """Large file (5MB) for performance testing."""
+
+@pytest.fixture
+def sample_files():
+    """Multiple sample files for batch testing."""
 ```
+
+### Upload Lifecycle Test Coverage
+
+The test suite provides comprehensive coverage for the upload lifecycle:
+
+**Unit Tests:**
+- ✅ File upload validation (type, metadata)
+- ✅ SHA256 hash computation
+- ✅ File size tracking
+- ✅ Metadata accuracy (label, notes, type)
+- ✅ Empty file handling
+- ✅ Invalid ingestion type validation
+- ✅ Missing required fields validation
+- ✅ Special characters in filenames
+
+**Integration Tests:**
+- ✅ End-to-end upload flow (upload → storage → database)
+- ✅ Blob retrievability from storage
+- ✅ Multiple sequential uploads
+- ✅ Incremental ingestion scenarios
+- ✅ Concurrent upload isolation
+- ✅ Large file handling (1MB-10MB)
+
+**Error Handling Tests:**
+- ✅ Storage backend failures
+- ✅ Database transaction failures
+- ✅ Empty file uploads
+- ✅ Invalid metadata
+- ✅ Missing file field
+- ✅ Multiple file uploads (unsupported)
+- ✅ Very long labels and notes
+
+**Storage Backend Tests:**
+- ✅ Local storage operations
+- ✅ Blob store/retrieve/delete
+- ✅ Nested path handling
+- ✅ Binary data integrity
+- ✅ Large file storage
+- ✅ Nonexistent blob handling
 
 ### Running Backend Tests
 
