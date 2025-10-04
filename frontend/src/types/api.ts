@@ -2,7 +2,7 @@
  * Type definitions for API requests and responses
  */
 
-export type UploadType = 'full_etc' | 'apps' | 'single_conf';
+export type UploadType = 'ds_etc' | 'instance_etc' | 'app_bundle' | 'single_conf';
 
 export interface IngestionRun {
   id: number;

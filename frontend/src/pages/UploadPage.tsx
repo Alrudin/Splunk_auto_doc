@@ -3,12 +3,12 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import runsApi from '../api/runs';
 
-type UploadType = 'full_etc' | 'apps' | 'single_conf';
+type UploadType = 'ds_etc' | 'instance_etc' | 'app_bundle' | 'single_conf';
 
 export default function UploadPage() {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [uploadType, setUploadType] = useState<UploadType>('full_etc');
+  const [uploadType, setUploadType] = useState<UploadType>('instance_etc');
   const [label, setLabel] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
@@ -74,13 +74,15 @@ export default function UploadPage() {
             onChange={(e) => setUploadType(e.target.value as UploadType)}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 px-3 py-2 border"
           >
-            <option value="full_etc">Full etc/ Directory</option>
-            <option value="apps">App Bundle</option>
+            <option value="instance_etc">Instance etc/ Directory</option>
+            <option value="ds_etc">Deployment Server etc/ Directory</option>
+            <option value="app_bundle">App Bundle</option>
             <option value="single_conf">Single Conf File</option>
           </select>
           <p className="mt-1 text-sm text-gray-500">
-            {uploadType === 'full_etc' && 'Complete Splunk etc/ directory structure'}
-            {uploadType === 'apps' && 'One or more Splunk apps'}
+            {uploadType === 'instance_etc' && 'Complete Splunk instance etc/ directory structure'}
+            {uploadType === 'ds_etc' && 'Deployment server etc/ directory structure'}
+            {uploadType === 'app_bundle' && 'One or more Splunk apps'}
             {uploadType === 'single_conf' && 'Individual configuration file'}
           </p>
         </div>
