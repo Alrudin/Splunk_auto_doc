@@ -42,16 +42,16 @@ echo ""
 if command -v pre-commit >/dev/null 2>&1; then
     echo "  - Trailing whitespace check..."
     pre-commit run trailing-whitespace --all-files > /dev/null 2>&1 && echo "    ✓ Passed" || echo "    ℹ Needs fixing"
-    
+
     echo "  - End of file fixer..."
     pre-commit run end-of-file-fixer --all-files > /dev/null 2>&1 && echo "    ✓ Passed" || echo "    ℹ Needs fixing"
-    
+
     echo "  - YAML check..."
     pre-commit run check-yaml --all-files > /dev/null 2>&1 && echo "    ✓ Passed" || echo "    ℹ Needs fixing"
-    
+
     echo "  - JSON check..."
     pre-commit run check-json --all-files > /dev/null 2>&1 && echo "    ✓ Passed" || echo "    ℹ Needs fixing"
-    
+
     echo "  - TOML check..."
     pre-commit run check-toml --all-files > /dev/null 2>&1 && echo "    ✓ Passed" || echo "    ℹ Needs fixing"
 else
