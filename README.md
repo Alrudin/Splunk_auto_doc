@@ -191,6 +191,102 @@ alembic history
 
 For development, ensure PostgreSQL is running (via Docker Compose) before applying migrations.
 
+## Logging & Monitoring
+
+### Logging Configuration
+
+The application supports structured logging with configurable output formats and levels. Logging behavior is controlled via environment variables in `.env`:
+
+**Configuration Options:**
+- `LOG_LEVEL` - Logging verbosity: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` (default: `INFO`)
+- `LOG_FORMAT` - Output format: `text` (human-readable) or `json` (structured JSON) (default: `text`)
+
+**Example `.env` configuration:**
+```bash
+LOG_LEVEL=INFO
+LOG_FORMAT=text
+```
+
+### Log Output Formats
+
+**Text Format (Human-Readable):**
+```
+2025-01-15 10:30:45 | INFO | app.main | Starting Splunk Auto Doc API
+2025-01-15 10:30:46 | INFO | app.core.middleware | Request completed: POST /v1/uploads - Status: 201 - Time: 0.1234s
+```
+
+**JSON Format (Structured):**
+```json
+{"timestamp": "2025-01-15 10:30:45", "level": "INFO", "logger": "app.main", "message": "Starting Splunk Auto Doc API", "version": "0.1.0", "environment": "development"}
+{"timestamp": "2025-01-15 10:30:46", "level": "INFO", "logger": "app.core.middleware", "message": "Request completed: POST /v1/uploads - Status: 201 - Time: 0.1234s", "request_id": "abc-123", "method": "POST", "path": "/v1/uploads", "status_code": 201, "duration": 0.1234, "run_id": 42}
+```
+
+### Request Tracing
+
+Each HTTP request is assigned a unique **correlation ID** (`request_id`) for end-to-end tracing:
+- Logged with request start/completion entries
+- Returned in response header: `X-Request-ID`
+- Linked to ingestion run IDs when applicable (`run_id` field)
+
+**Example request flow:**
+```bash
+# Make a request
+curl -X POST http://localhost:8000/v1/uploads -F "file=@test.tar.gz" -F "type=instance_etc" -v
+
+# Response includes correlation ID in headers
+< X-Request-ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+**Log entries for the request:**
+```
+2025-01-15 10:30:45 | INFO | app.core.middleware | Request started: POST /v1/uploads
+2025-01-15 10:30:46 | INFO | app.core.middleware | Request completed: POST /v1/uploads - Status: 201 - Time: 0.1234s
+```
+
+### Logged Information
+
+**Startup/Shutdown Events:**
+- Application version, environment, debug mode, log configuration
+
+**HTTP Requests (via middleware):**
+- HTTP method and path
+- Request/response sizes (when available)
+- Status code and duration
+- Correlation ID (`request_id`)
+- Ingestion run ID (`run_id`) for upload operations
+- Exception tracebacks for failed requests
+
+### Viewing Logs
+
+**Docker Compose:**
+```bash
+# View logs from API service
+docker compose logs -f api
+
+# View logs with timestamps
+docker compose logs -f --timestamps api
+
+# View last 100 lines
+docker compose logs --tail=100 api
+```
+
+**Local Development:**
+```bash
+# Logs are written to stdout/stderr
+python backend/app/main.py
+
+# Or via uvicorn
+uvicorn app.main:app --reload
+```
+
+### Production Recommendations
+
+For production deployments:
+1. **Use JSON format** (`LOG_FORMAT=json`) for easier parsing by log aggregators (ELK, Splunk, CloudWatch)
+2. **Set appropriate log level** (`LOG_LEVEL=WARNING` or `LOG_LEVEL=INFO`)
+3. **Forward logs** to centralized logging infrastructure
+4. **Monitor correlation IDs** to trace request flows across services
+
 ---
 
 **Current Status**: Milestone 1 - Project skeleton and upload ingestion foundation in progress.
