@@ -209,6 +209,21 @@ pytest backend/tests/ -k "upload" -v
 pytest backend/tests/ -vv --tb=short
 ```
 
+**Running Tests with Docker:**
+```bash
+# Run all backend tests in Docker container
+docker compose run --rm api pytest tests/ -v
+
+# Run with coverage in Docker
+docker compose run --rm api pytest tests/ --cov=app --cov-report=term
+
+# Run specific test file in Docker
+docker compose run --rm api pytest tests/test_uploads.py -v
+
+# Validate test structure without running tests
+python backend/tests/validate_tests.py
+```
+
 **Test Fixtures:**
 The `conftest.py` provides shared fixtures:
 - `test_db` - In-memory SQLite database for isolated tests
