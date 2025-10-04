@@ -131,11 +131,27 @@ Key features:
 
 4. **Run tests**
    ```bash
-   # Run all tests
+   # Run all tests (backend)
+   make test
+
+   # Run backend tests only
+   make test-backend
+   # or
    pytest backend/tests/
 
-   # Run with coverage
-   pytest backend/tests/ --cov=backend/app
+   # Run frontend tests only
+   make test-frontend
+   # or
+   cd frontend && npm run test
+
+   # Run tests with coverage report
+   make test-coverage
+
+   # Run with coverage (backend only)
+   pytest backend/tests/ --cov=backend/app --cov-report=term --cov-report=html
+
+   # Run with coverage (frontend only)
+   cd frontend && npm run test:coverage
    ```
 
 5. **Code quality checks**
@@ -149,6 +165,154 @@ Key features:
    # Type checking
    mypy backend/app/
    ```
+
+## Testing
+
+This project has comprehensive test coverage for both backend and frontend.
+
+### Backend Testing
+
+**Framework:** pytest with pytest-cov for coverage
+
+**Test Structure:**
+- `backend/tests/` - All backend tests
+- `backend/tests/conftest.py` - Shared pytest fixtures
+- Unit tests for models, schemas, storage, and API endpoints
+- Integration tests for upload lifecycle and database operations
+
+**Running Backend Tests:**
+```bash
+# Run all backend tests
+make test-backend
+
+# Run specific test file
+pytest backend/tests/test_uploads.py -v
+
+# Run with coverage
+pytest backend/tests/ --cov=backend/app --cov-report=term --cov-report=html
+
+# Run specific test
+pytest backend/tests/test_uploads.py::TestUploadEndpoint::test_upload_success -v
+```
+
+**Test Fixtures:**
+The `conftest.py` provides shared fixtures:
+- `test_db` - In-memory SQLite database for isolated tests
+- `test_storage` - Temporary directory storage backend
+- `client` - FastAPI TestClient with overridden dependencies
+- `db_session` - Direct database session access
+- `sample_tar_file` - Sample file for upload tests
+- `sample_upload_metadata` - Sample metadata for tests
+
+**Coverage Goals:**
+- Minimum 70% coverage for touched/modified code
+- Critical paths (uploads, runs, storage) should have >80% coverage
+- All API endpoints should have at least basic integration tests
+
+### Frontend Testing
+
+**Framework:** Vitest with React Testing Library
+
+**Test Structure:**
+- `frontend/src/test/` - Test files and setup
+- `frontend/src/test/setup.ts` - Test configuration
+- `frontend/vitest.config.ts` - Vitest configuration
+- Unit tests for components and API client
+- Integration tests for routing and navigation
+
+**Running Frontend Tests:**
+```bash
+# Run all frontend tests
+make test-frontend
+# or
+cd frontend && npm run test
+
+# Run with UI (interactive mode)
+cd frontend && npm run test:ui
+
+# Run with coverage
+cd frontend && npm run test:coverage
+```
+
+**Test Files:**
+- `App.test.ts` - Basic application tests
+- `HomePage.test.tsx` - HomePage component tests
+- `MainLayout.test.tsx` - Layout component tests
+- `ApiClient.test.ts` - API client wrapper tests
+- `Navigation.test.tsx` - Routing integration tests
+
+**Coverage Configuration:**
+Coverage reports exclude:
+- `node_modules/`
+- `src/test/`
+- `**/*.d.ts`
+- `**/*.config.*`
+- `dist/`
+
+### Running All Tests
+
+```bash
+# Run both backend and frontend tests
+make test
+
+# Run with coverage reports for both
+make test-coverage
+```
+
+### Troubleshooting Tests
+
+**Backend:**
+
+1. **Dependencies not available** - Install with `pip install -e ".[dev]"`
+2. **Database errors** - Tests use in-memory SQLite, no external DB needed
+3. **Import errors** - Ensure you're in the project root directory
+
+**Frontend:**
+
+1. **Dependencies not installed** - Run `cd frontend && npm install`
+2. **Module not found** - Check that all imports use correct paths
+3. **Component test failures** - Ensure components are wrapped in proper context (Router, etc.)
+
+**Common Issues:**
+
+- **Timeout errors**: Some tests may need longer timeouts for async operations
+- **Port conflicts**: Ensure no services are running on test ports
+- **File permissions**: Temporary test directories need write permissions
+
+### Writing New Tests
+
+**Backend Test Example:**
+```python
+def test_my_feature(client, test_db):
+    """Test my new feature."""
+    response = client.get("/v1/my-endpoint")
+    assert response.status_code == 200
+    data = response.json()
+    assert "expected_field" in data
+```
+
+**Frontend Test Example:**
+```typescript
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { BrowserRouter } from 'react-router-dom'
+import MyComponent from '../components/MyComponent'
+
+describe('MyComponent', () => {
+  it('should render correctly', () => {
+    render(
+      <BrowserRouter>
+        <MyComponent />
+      </BrowserRouter>
+    )
+    expect(screen.getByText('Expected Text')).toBeDefined()
+  })
+})
+```
+
+### Continuous Integration
+
+Tests are run in CI on every pull request. Coverage reports are generated and must meet minimum thresholds (70% for touched code).
 
 ## Development Tools & Pre-Commit Hooks
 
