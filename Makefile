@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api migrate migrate-test
+.PHONY: help install dev test test-backend test-frontend test-coverage test-all lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api migrate migrate-test
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -14,13 +14,41 @@ dev: ## Set up development environment
 api: ## Run the API server in development mode
 	cd backend && python -m app.main
 
-test: ## Run tests
+test: test-backend ## Run all tests (backend and frontend)
+
+test-backend: ## Run backend tests
 	python backend/tests/test_basic.py
 	@if command -v pytest >/dev/null 2>&1; then \
 		pytest backend/tests/ -v; \
 	else \
 		echo "pytest not available, basic tests passed"; \
 	fi
+
+test-frontend: ## Run frontend tests
+	@if [ -d "frontend/node_modules" ]; then \
+		cd frontend && npm run test; \
+	else \
+		echo "Frontend dependencies not installed. Run 'cd frontend && npm install' first."; \
+	fi
+
+test-coverage: ## Run tests with coverage report
+	@echo "Running backend tests with coverage..."
+	@if command -v pytest >/dev/null 2>&1; then \
+		pytest backend/tests/ --cov=backend/app --cov-report=term --cov-report=html; \
+		echo "Backend coverage report generated in htmlcov/"; \
+	else \
+		echo "pytest not available, skipping backend coverage"; \
+	fi
+	@echo ""
+	@echo "Running frontend tests with coverage..."
+	@if [ -d "frontend/node_modules" ]; then \
+		cd frontend && npm run test:coverage; \
+		echo "Frontend coverage report generated in frontend/coverage/"; \
+	else \
+		echo "Frontend dependencies not installed. Run 'cd frontend && npm install' first."; \
+	fi
+
+test-all: test-coverage ## Run all tests with coverage (alias for test-coverage)
 
 lint: ## Run linter
 	@if command -v ruff >/dev/null 2>&1; then \

@@ -185,23 +185,43 @@ pre-commit run
 
 ## Testing Guidelines
 
+For detailed information about testing, see [TESTING.md](TESTING.md).
+
 - Write unit tests for all new functions and classes
 - Include integration tests for API endpoints
 - Ensure tests are isolated and can run independently
 - Use descriptive test names that explain what is being tested
 - Aim for good test coverage but focus on testing important functionality
+- All new code should have at least 70% test coverage
+- Critical paths (uploads, runs, storage) should have 80%+ coverage
 
 **Backend Testing (pytest):**
 - Place tests in `backend/tests/`
 - Name test files `test_*.py`
-- Use fixtures for common test data
+- Use fixtures from `conftest.py` for common test data
 - Test both success and error cases
+- See `backend/tests/test_uploads.py` for integration test examples
+- See `backend/tests/test_api_endpoints.py` for unit test examples
 
 **Frontend Testing (Vitest):**
 - Place tests in `frontend/src/test/` or alongside components as `*.test.ts(x)`
 - Use Vitest for unit tests
 - Use @testing-library/react for component testing
 - Test user interactions and edge cases
+- See `frontend/src/test/HomePage.test.tsx` for component test examples
+- See `frontend/src/test/ApiClient.test.ts` for API client test examples
+
+**Running Tests:**
+```bash
+# Run all backend tests
+make test-backend
+
+# Run all frontend tests
+make test-frontend
+
+# Run tests with coverage
+make test-coverage
+```
 
 ## Commit Message Guidelines
 
