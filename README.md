@@ -1,5 +1,8 @@
 # Splunk Auto Doc
 
+[![Backend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml)
+
 ## Overview
 
 Splunk Auto Doc is a web application that parses and analyzes Splunk configuration files to generate comprehensive documentation and visualizations. The tool helps Splunk administrators understand data flow, configuration dependencies, and routing paths within their Splunk deployments.
@@ -359,7 +362,141 @@ describe('MyComponent', () => {
 
 ### Continuous Integration
 
-Tests are run in CI on every pull request. Coverage reports are generated and must meet minimum thresholds (70% for touched code).
+Our CI/CD pipeline automatically runs quality checks on every push and pull request to ensure code quality and prevent regressions.
+
+**CI Workflows:**
+- **Backend CI** [![Backend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml)
+  - Runs on: Python 3.11 and 3.12
+  - Steps: Ruff linting → Ruff format check → mypy type checking → pytest with coverage
+  - All steps must pass for PR approval
+
+- **Frontend CI** [![Frontend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml)
+  - Runs on: Node.js 20
+  - Steps: ESLint linting → Prettier format check → TypeScript build → Vitest tests with coverage
+  - All steps must pass for PR approval
+
+**What Gets Checked:**
+- **Linting**: Code style and quality issues (Ruff for Python, ESLint for TypeScript)
+- **Formatting**: Code formatting consistency (Ruff for Python, Prettier for TypeScript)
+- **Type Checking**: Static type validation (mypy for Python, TypeScript compiler for frontend)
+- **Testing**: Unit and integration tests with coverage reports (pytest for backend, Vitest for frontend)
+
+**Coverage Requirements:**
+- Minimum 70% coverage for touched/modified code
+- Critical paths (uploads, runs, storage) should have >80% coverage
+- Coverage reports are uploaded to the CI logs
+
+**Troubleshooting CI Failures:**
+
+*Backend CI Failures:*
+
+1. **Ruff linting errors**
+   ```bash
+   # Fix automatically where possible
+   ruff check backend/ --fix
+   
+   # Check what needs manual fixing
+   ruff check backend/
+   ```
+
+2. **Ruff format errors**
+   ```bash
+   # Format all backend code
+   ruff format backend/
+   ```
+
+3. **mypy type errors**
+   ```bash
+   # Run mypy locally to see errors
+   mypy backend/app/
+   
+   # Common fixes:
+   # - Add type hints to function parameters and return types
+   # - Import types from typing module
+   # - Use proper type annotations for variables
+   ```
+
+4. **pytest failures**
+   ```bash
+   # Run tests locally with verbose output
+   pytest backend/tests/ -v
+   
+   # Run specific failing test
+   pytest backend/tests/test_file.py::test_name -v
+   
+   # Run with coverage to identify untested code
+   pytest backend/tests/ --cov=backend/app --cov-report=term
+   ```
+
+*Frontend CI Failures:*
+
+1. **ESLint errors**
+   ```bash
+   cd frontend
+   
+   # Fix automatically where possible
+   npm run lint -- --fix
+   
+   # Check what needs manual fixing
+   npm run lint
+   ```
+
+2. **Prettier format errors**
+   ```bash
+   cd frontend
+   
+   # Format all frontend code
+   npm run format
+   
+   # Check formatting
+   npm run format:check
+   ```
+
+3. **TypeScript build errors**
+   ```bash
+   cd frontend
+   
+   # Run build to see type errors
+   npm run build
+   
+   # Common fixes:
+   # - Add proper type annotations
+   # - Fix import paths
+   # - Update component props types
+   ```
+
+4. **Vitest test failures**
+   ```bash
+   cd frontend
+   
+   # Run tests locally
+   npm run test
+   
+   # Run specific test file
+   npm run test -- src/test/ComponentName.test.tsx
+   
+   # Run with UI for debugging
+   npm run test:ui
+   ```
+
+*General Tips:*
+- Always run quality checks locally before pushing: `pre-commit run --all-files`
+- Check CI logs for detailed error messages
+- Ensure all dependencies are up to date
+- If CI passes but pre-commit fails (or vice versa), check tool versions match
+
+**CI Secrets and Environment Variables:**
+
+The CI workflows are designed to run without requiring any secrets or environment variables. All quality checks (linting, type checking, testing) run using only the code in the repository.
+
+*Optional Configuration:*
+- **CODECOV_TOKEN**: If you want to upload coverage reports to Codecov, add this secret to your GitHub repository settings. The CI workflows will continue to work without it, as the codecov upload step uses `continue-on-error: true`.
+
+*Security Notes:*
+- No sensitive information (API keys, passwords, database credentials) is used in CI
+- All tests use in-memory databases or temporary file storage
+- Test fixtures are self-contained and don't require external services
+- Coverage reports contain only code statistics, no sensitive data
 
 ## Development Tools & Pre-Commit Hooks
 
