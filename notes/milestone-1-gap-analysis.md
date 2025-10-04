@@ -30,22 +30,22 @@ Core backend deliverables for M1 are completed: infrastructure, backend skeleton
 | Upload ingestion endpoint POST /v1/uploads                                 |     Yes  | Issue #18 / PR #19                 |                                                                              |
 | Runs listing & detail endpoints                                            |     Yes  | Issue #20 / PR #21                 |                                                                              |
 | Logging & request middleware (structured + correlation)                    |     Yes  | Issue #22 / PR #23                 | Correlation ID included; request timing, status logged                      |
-| Frontend scaffold (React/Vite/Tailwind)                                    |      No  | –                                  | Baseline layout & build still needed                                        |
-| Frontend Upload Page                                                       |      No  | –                                  | Drag & drop + metadata form                                                 |
-| Frontend Runs Page                                                         |      No  | –                                  | Table listing runs                                                          |
+| Frontend scaffold (React/Vite/Tailwind)                                    |     Yes  | This PR                            | React + Vite + Tailwind + React Query + React Router configured             |
+| Frontend Upload Page                                                       |     Yes  | This PR                            | Drag & drop + metadata form + file upload implemented                       |
+| Frontend Runs Page                                                         |     Yes  | This PR                            | Table listing runs with status badges and error handling                    |
 | Tooling & pre-commit (Ruff, mypy, pytest)                                  |   Partial| PR #3                               | Base tooling present; extend pre-commit/mypy config as needed               |
 | Testing (unit + integration upload lifecycle)                              |   Partial| PRs #13, #21 (basic/endpoint tests) | Broader unit + integration coverage and fixtures still needed               |
 | CI pipeline (lint, type, test)                                             |     Yes  | PR #3                               | CI exists; ensure full gating on lint/type/tests                            |
-| Documentation updates (README, CONTRIBUTING, curl examples)                |   Partial| PRs #3, #13                         | Architecture snapshot/diagram and fuller guides still pending               |
+| Documentation updates (README, CONTRIBUTING, curl examples)                |   Partial| PRs #3, #13, This PR                | Frontend quickstart added; architecture snapshot/diagram still pending      |
 | ADR(s) for core decisions                                                  |      No  | –                                  | ADR-001 (core stack) not yet added                                          |
 | Risk mitigations (DB readiness, streaming uploads)                         |   Partial| PR #9 (health checks), PR #19 (TBD) | Compose-level readiness present; streamed/chunked upload handling to verify |
 | Meta acceptance tracking issue                                             |      No  | –                                  | Tracking issue not yet opened                                               |
 | Environment helpers (.env.example, make targets)                           |     Yes  | PR #3, PR #9                        | Makefile and examples present                                               |
 
 ## Recommended New/Remaining Issues (Reflecting Current Gaps)
-- Frontend Scaffold (React + Vite + Tailwind + React Query)
-- Frontend Upload Page
-- Frontend Runs Page
+- ~~Frontend Scaffold (React + Vite + Tailwind + React Query)~~ ✅ Completed
+- ~~Frontend Upload Page~~ ✅ Completed
+- ~~Frontend Runs Page~~ ✅ Completed
 - Configure Tooling & Pre-Commit Hooks (extend/verify)
 - Add Test Suite (Unit & Integration; fixtures; coverage target)
 - Set Up CI Workflow (ensure gating for lint, type, tests)

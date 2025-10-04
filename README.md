@@ -65,7 +65,7 @@ Key features:
 3. **Access the application**
    - API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
-   - Frontend: http://localhost:3000 (placeholder with service status)
+   - Frontend: http://localhost:3000
    - MinIO Console: http://localhost:9001 (admin/password)
 
 ### Local Development
@@ -89,7 +89,25 @@ Key features:
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
-2. **Database setup**
+2. **Frontend setup**
+   ```bash
+   # Navigate to frontend directory
+   cd frontend
+   
+   # Install dependencies
+   npm install
+   
+   # Start development server
+   npm run dev
+   
+   # Build for production
+   npm run build
+   
+   # Run linter
+   npm run lint
+   ```
+
+3. **Database setup**
    ```bash
    # Run database migrations
    cd backend
@@ -102,7 +120,7 @@ Key features:
    alembic history
    ```
 
-3. **Run tests**
+4. **Run tests**
    ```bash
    # Run all tests
    pytest backend/tests/
@@ -111,7 +129,7 @@ Key features:
    pytest backend/tests/ --cov=backend/app
    ```
 
-4. **Code quality checks**
+5. **Code quality checks**
    ```bash
    # Format code
    ruff format backend/
