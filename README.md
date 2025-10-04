@@ -485,6 +485,19 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
 - Ensure all dependencies are up to date
 - If CI passes but pre-commit fails (or vice versa), check tool versions match
 
+**CI Secrets and Environment Variables:**
+
+The CI workflows are designed to run without requiring any secrets or environment variables. All quality checks (linting, type checking, testing) run using only the code in the repository.
+
+*Optional Configuration:*
+- **CODECOV_TOKEN**: If you want to upload coverage reports to Codecov, add this secret to your GitHub repository settings. The CI workflows will continue to work without it, as the codecov upload step uses `continue-on-error: true`.
+
+*Security Notes:*
+- No sensitive information (API keys, passwords, database credentials) is used in CI
+- All tests use in-memory databases or temporary file storage
+- Test fixtures are self-contained and don't require external services
+- Coverage reports contain only code statistics, no sensitive data
+
 ## Development Tools & Pre-Commit Hooks
 
 ### Tooling Overview

@@ -162,6 +162,41 @@ pre-commit run
    git push origin feature/your-feature-name
    ```
 
+   Then open a pull request on GitHub. The CI workflows will automatically run to validate your changes.
+
+## Continuous Integration
+
+All pull requests must pass CI checks before they can be merged. The CI pipeline runs automatically on every push and pull request.
+
+### CI Workflows
+
+**Backend CI** [![Backend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml)
+- Runs on Python 3.11 and 3.12
+- Checks: Ruff linting → Ruff format → mypy type checking → pytest with coverage
+- All steps must pass for the PR to be approved
+
+**Frontend CI** [![Frontend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml)
+- Runs on Node.js 20
+- Checks: ESLint → Prettier format → TypeScript build → Vitest with coverage
+- All steps must pass for the PR to be approved
+
+### What to Do If CI Fails
+
+If your PR fails CI checks:
+
+1. **Check the CI logs** - Click on the failed check to see detailed error messages
+2. **Run checks locally** - Use the commands from step 3 of the Development Workflow above
+3. **Fix the issues** - Address linting, formatting, type errors, or test failures
+4. **Commit and push** - The CI will automatically re-run on new commits
+
+**Pro tip**: Run `pre-commit run --all-files` before pushing to catch most issues locally.
+
+### Coverage Requirements
+
+- Minimum 70% coverage for touched/modified code
+- Critical paths (uploads, runs, storage) should have >80% coverage
+- Coverage reports are automatically generated and can be viewed in CI logs
+
 ## Project Structure
 
 ```
