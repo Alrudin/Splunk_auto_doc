@@ -1,24 +1,22 @@
 """Main FastAPI application entry point."""
 
 import logging
-import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 
 from app.api.v1.health import router as health_router
 from app.api.v1.runs import router as runs_router
 from app.api.v1.uploads import router as uploads_router
 from app.core.config import get_settings
+from app.core.logging import setup_logging
+from app.core.middleware import RequestLoggingMiddleware
 from app.health import router as legacy_health_router
 
-# Setup structured logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# Initialize logging configuration
+settings = get_settings()
+setup_logging(log_level=settings.log_level, log_format=settings.log_format)
 logger = logging.getLogger(__name__)
 
 
@@ -27,9 +25,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
     # Startup
     settings = get_settings()
-    logger.info(f"Starting Splunk Auto Doc API v{settings.version}")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Debug mode: {settings.debug}")
+    logger.info(
+        "Starting Splunk Auto Doc API",
+        extra={
+            "version": settings.version,
+            "environment": settings.environment,
+            "debug": settings.debug,
+            "log_level": settings.log_level,
+            "log_format": settings.log_format,
+        },
+    )
 
     yield
 
@@ -49,17 +54,7 @@ def create_app() -> FastAPI:
     )
 
     # Add request logging middleware
-    @app.middleware("http")
-    async def log_requests(request: Request, call_next):
-        start_time = time.time()
-        response = await call_next(request)
-        process_time = time.time() - start_time
-        logger.info(
-            f"{request.method} {request.url.path} - "
-            f"Status: {response.status_code} - "
-            f"Time: {process_time:.4f}s"
-        )
-        return response
+    app.add_middleware(RequestLoggingMiddleware)
 
     # Include routers
     app.include_router(health_router, prefix="/v1", tags=["health"])

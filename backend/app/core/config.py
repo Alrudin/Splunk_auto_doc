@@ -45,6 +45,14 @@ class Settings(BaseSettings):
         default=["http://localhost:3000"], description="CORS allowed origins"
     )
 
+    # Logging
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
+        default="INFO", description="Logging level"
+    )
+    log_format: Literal["text", "json"] = Field(
+        default="text", description="Log output format (text or json)"
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
