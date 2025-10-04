@@ -180,6 +180,11 @@ This project has comprehensive test coverage for both backend and frontend.
 - Unit tests for models, schemas, storage, and API endpoints
 - Integration tests for upload lifecycle and database operations
 
+**Test Categories:**
+- **Unit Tests:** Individual component behavior (models, schemas, endpoints)
+- **Integration Tests:** End-to-end workflows (upload lifecycle, storage operations)
+- **Error Handling Tests:** Edge cases, validation, failure scenarios
+
 **Running Backend Tests:**
 ```bash
 # Run all backend tests
@@ -191,8 +196,32 @@ pytest backend/tests/test_uploads.py -v
 # Run with coverage
 pytest backend/tests/ --cov=backend/app --cov-report=term --cov-report=html
 
+# Run specific test class
+pytest backend/tests/test_uploads.py::TestUploadEndpoint -v
+
 # Run specific test
 pytest backend/tests/test_uploads.py::TestUploadEndpoint::test_upload_success -v
+
+# Run tests matching a pattern
+pytest backend/tests/ -k "upload" -v
+
+# Run with detailed output
+pytest backend/tests/ -vv --tb=short
+```
+
+**Running Tests with Docker:**
+```bash
+# Run all backend tests in Docker container
+docker compose run --rm api pytest tests/ -v
+
+# Run with coverage in Docker
+docker compose run --rm api pytest tests/ --cov=app --cov-report=term
+
+# Run specific test file in Docker
+docker compose run --rm api pytest tests/test_uploads.py -v
+
+# Validate test structure without running tests
+python backend/tests/validate_tests.py
 ```
 
 **Test Fixtures:**
@@ -203,6 +232,24 @@ The `conftest.py` provides shared fixtures:
 - `db_session` - Direct database session access
 - `sample_tar_file` - Sample file for upload tests
 - `sample_upload_metadata` - Sample metadata for tests
+- `large_file` - Large file (5MB) for performance testing
+- `sample_files` - Multiple sample files for batch testing
+
+**Upload Lifecycle Test Coverage:**
+- ✅ Successful file upload and storage
+- ✅ Database record creation (ingestion_runs and files tables)
+- ✅ SHA256 hash computation and verification
+- ✅ Metadata accuracy (type, label, notes)
+- ✅ Blob retrievability from storage
+- ✅ Multiple sequential uploads
+- ✅ Large file handling (1MB-10MB)
+- ✅ Empty file handling
+- ✅ Invalid ingestion type validation
+- ✅ Missing metadata validation
+- ✅ Storage failure scenarios
+- ✅ Special characters in filenames
+- ✅ End-to-end integration tests
+- ✅ Incremental ingestion scenarios
 
 **Coverage Goals:**
 - Minimum 70% coverage for touched/modified code
