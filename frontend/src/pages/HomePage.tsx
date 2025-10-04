@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'
 
 export default function HomePage() {
   return (
@@ -9,8 +9,8 @@ export default function HomePage() {
           Welcome to Splunk Auto Doc
         </h1>
         <p className="text-lg text-gray-600 mb-6">
-          A web application that parses and analyzes Splunk configuration files to generate
-          comprehensive documentation and visualizations.
+          A web application that parses and analyzes Splunk configuration files
+          to generate comprehensive documentation and visualizations.
         </p>
         <div className="flex gap-4">
           <Link
@@ -64,34 +64,36 @@ export default function HomePage() {
 
       {/* Getting Started */}
       <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Getting Started</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+          Getting Started
+        </h2>
         <ol className="list-decimal list-inside space-y-2 text-gray-700">
           <li>
-            <strong>Upload your Splunk configuration:</strong> Use the upload page to submit
-            tar/zip archives or individual conf files
+            <strong>Upload your Splunk configuration:</strong> Use the upload
+            page to submit tar/zip archives or individual conf files
           </li>
           <li>
-            <strong>Select upload type:</strong> Choose from full etc/ directory, app bundles,
-            or single conf files
+            <strong>Select upload type:</strong> Choose from full etc/
+            directory, app bundles, or single conf files
           </li>
           <li>
-            <strong>View ingestion runs:</strong> Track the status and results of your uploads
-            in the runs page
+            <strong>View ingestion runs:</strong> Track the status and results
+            of your uploads in the runs page
           </li>
           <li>
-            <strong>Explore results:</strong> (Coming soon) Browse hosts, apps, data paths, and
-            configuration relationships
+            <strong>Explore results:</strong> (Coming soon) Browse hosts, apps,
+            data paths, and configuration relationships
           </li>
         </ol>
       </div>
     </div>
-  );
+  )
 }
 
 interface FeatureCardProps {
-  title: string;
-  description: string;
-  icon: string;
+  title: string
+  description: string
+  icon: string
 }
 
 function FeatureCard({ title, description, icon }: FeatureCardProps) {
@@ -101,5 +103,5 @@ function FeatureCard({ title, description, icon }: FeatureCardProps) {
       <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-600 text-sm">{description}</p>
     </div>
-  );
+  )
 }

@@ -1,69 +1,81 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import runsApi from '../api/runs';
+import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import runsApi from '../api/runs'
 
-type UploadType = 'ds_etc' | 'instance_etc' | 'app_bundle' | 'single_conf';
+type UploadType = 'ds_etc' | 'instance_etc' | 'app_bundle' | 'single_conf'
 
 export default function UploadPage() {
-  const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadType, setUploadType] = useState<UploadType>('instance_etc');
-  const [label, setLabel] = useState('');
-  const [dragActive, setDragActive] = useState(false);
+  const navigate = useNavigate()
+  const [file, setFile] = useState<File | null>(null)
+  const [uploadType, setUploadType] = useState<UploadType>('instance_etc')
+  const [label, setLabel] = useState('')
+  const [dragActive, setDragActive] = useState(false)
 
   const uploadMutation = useMutation({
-    mutationFn: ({ file, uploadType, label }: { file: File; uploadType: string; label?: string }) =>
-      runsApi.uploadFile(file, uploadType, label),
-    onSuccess: (data) => {
+    mutationFn: ({
+      file,
+      uploadType,
+      label,
+    }: {
+      file: File
+      uploadType: string
+      label?: string
+    }) => runsApi.uploadFile(file, uploadType, label),
+    onSuccess: data => {
       // Navigate to runs page with success message
-      navigate(`/runs?success=true&runId=${data.run_id}`);
+      navigate(`/runs?success=true&runId=${data.run_id}`)
     },
-  });
+  })
 
   const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
     if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
+      setDragActive(true)
     } else if (e.type === 'dragleave') {
-      setDragActive(false);
+      setDragActive(false)
     }
-  };
+  }
 
   const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
+      setFile(e.dataTransfer.files[0])
     }
-  };
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      setFile(e.target.files[0])
     }
-  };
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (file) {
-      uploadMutation.mutate({ file, uploadType, label: label || undefined });
+      uploadMutation.mutate({ file, uploadType, label: label || undefined })
     }
-  };
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Upload Configuration</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Upload Configuration
+        </h1>
         <p className="mt-2 text-gray-600">
           Upload Splunk configuration files for parsing and analysis
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6"
+      >
         {/* Upload Type Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -71,7 +83,7 @@ export default function UploadPage() {
           </label>
           <select
             value={uploadType}
-            onChange={(e) => setUploadType(e.target.value as UploadType)}
+            onChange={e => setUploadType(e.target.value as UploadType)}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 px-3 py-2 border"
           >
             <option value="instance_etc">Instance etc/ Directory</option>
@@ -80,8 +92,10 @@ export default function UploadPage() {
             <option value="single_conf">Single Conf File</option>
           </select>
           <p className="mt-1 text-sm text-gray-500">
-            {uploadType === 'instance_etc' && 'Complete Splunk instance etc/ directory structure'}
-            {uploadType === 'ds_etc' && 'Deployment server etc/ directory structure'}
+            {uploadType === 'instance_etc' &&
+              'Complete Splunk instance etc/ directory structure'}
+            {uploadType === 'ds_etc' &&
+              'Deployment server etc/ directory structure'}
             {uploadType === 'app_bundle' && 'One or more Splunk apps'}
             {uploadType === 'single_conf' && 'Individual configuration file'}
           </p>
@@ -89,14 +103,17 @@ export default function UploadPage() {
 
         {/* Label Input */}
         <div>
-          <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="label"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Label (Optional)
           </label>
           <input
             type="text"
             id="label"
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            onChange={e => setLabel(e.target.value)}
             placeholder="e.g., Production Config 2024-01"
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 px-3 py-2 border"
           />
@@ -146,8 +163,10 @@ export default function UploadPage() {
                 />
               </svg>
               <p className="text-sm text-gray-600 mb-1">
-                <span className="font-semibold text-primary-500">Click to upload</span> or drag
-                and drop
+                <span className="font-semibold text-primary-500">
+                  Click to upload
+                </span>{' '}
+                or drag and drop
               </p>
               <p className="text-xs text-gray-500">
                 TAR, TAR.GZ, ZIP, or CONF files
@@ -234,5 +253,5 @@ export default function UploadPage() {
         </div>
       </form>
     </div>
-  );
+  )
 }

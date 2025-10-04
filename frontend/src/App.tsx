@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import MainLayout from './layouts/MainLayout';
-import HomePage from './pages/HomePage';
-import UploadPage from './pages/UploadPage';
-import RunsPage from './pages/RunsPage';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import MainLayout from './layouts/MainLayout'
+import HomePage from './pages/HomePage'
+import UploadPage from './pages/UploadPage'
+import RunsPage from './pages/RunsPage'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
       staleTime: 5000,
     },
   },
-});
+})
 
 function App() {
   return (
@@ -29,8 +29,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
-  );
+  )
 }
 
-export default App;
-
+export default App

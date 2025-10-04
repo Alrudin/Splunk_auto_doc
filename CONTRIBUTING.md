@@ -12,16 +12,26 @@ Thank you for your interest in contributing to Splunk Auto Doc! This document pr
 
 2. **Set up the development environment**
    ```bash
-   # Install dependencies
-   make install
+   # Install backend dependencies
+   pip install -e ".[dev]"
+   
+   # Install frontend dependencies
+   cd frontend
+   npm install
+   cd ..
    
    # Set up pre-commit hooks
-   make dev
+   pre-commit install
    ```
 
 3. **Run tests to verify setup**
    ```bash
-   make test
+   # Backend tests
+   pytest backend/tests/
+   
+   # Frontend tests
+   cd frontend
+   npm run test
    ```
 
 ## Coding Standards
@@ -37,29 +47,79 @@ This project follows strict coding standards to ensure consistency and maintaina
 - **Indentation**: Use 4 spaces for each level of indentation
 - **Testing**: Create tests for all new code
 
+### TypeScript/React Code Standards
+
+- **Follow ESLint rules**: The project uses TypeScript ESLint with React plugins
+- **Type Safety**: Always use TypeScript types, avoid `any` when possible
+- **Component Structure**: Use functional components with hooks
+- **Naming**: Use PascalCase for components, camelCase for functions/variables
+- **Indentation**: Use 2 spaces for each level of indentation
+- **Testing**: Write unit tests for components and utilities
+
 ### Code Quality Tools
 
 We use several tools to maintain code quality:
 
+**Backend (Python):**
 - **Ruff**: For linting and code formatting
 - **mypy**: For static type checking
 - **pytest**: For testing
 - **pre-commit**: For automated code quality checks
 
+**Frontend (TypeScript/React):**
+- **ESLint**: For linting
+- **Prettier**: For code formatting
+- **Vitest**: For testing
+- **TypeScript**: For type checking
+
 ### Running Quality Checks
 
+**Backend:**
 ```bash
 # Format code
 make format
+# or: ruff format backend/
 
 # Run linter
 make lint
+# or: ruff check backend/
 
 # Type checking
 make type-check
+# or: mypy backend/app/
 
 # Run all tests
 make test
+# or: pytest backend/tests/
+```
+
+**Frontend:**
+```bash
+cd frontend
+
+# Run linter
+npm run lint
+
+# Format code
+npm run format
+
+# Check formatting (CI mode)
+npm run format:check
+
+# Run tests
+npm run test
+
+# Type checking (via build)
+npm run build
+```
+
+**Pre-commit hooks:**
+```bash
+# Run all hooks on all files
+pre-commit run --all-files
+
+# Run hooks on staged files (automatic on commit)
+pre-commit run
 ```
 
 ## Development Workflow
@@ -76,7 +136,19 @@ make test
 
 3. **Run quality checks**
    ```bash
-   make test lint type-check
+   # Backend
+   pytest backend/tests/
+   ruff check backend/
+   mypy backend/app/
+   
+   # Frontend
+   cd frontend
+   npm run lint
+   npm run test
+   cd ..
+   
+   # Or use pre-commit to run all checks
+   pre-commit run --all-files
    ```
 
 4. **Commit your changes**
@@ -99,7 +171,14 @@ make test
 │   │   ├── services/ # Business logic services
 │   │   └── storage/  # Storage abstractions
 │   └── tests/        # Backend tests
-├── frontend/         # React frontend (future)
+├── frontend/         # React + Vite + TypeScript frontend
+│   ├── src/          # Frontend source code
+│   │   ├── api/      # API client functions
+│   │   ├── pages/    # Page components
+│   │   ├── layouts/  # Layout components
+│   │   ├── types/    # TypeScript type definitions
+│   │   └── test/     # Frontend tests
+│   └── public/       # Static assets
 ├── notes/           # Project documentation and plans
 └── docker-compose.yml  # Development environment
 ```
@@ -111,6 +190,18 @@ make test
 - Ensure tests are isolated and can run independently
 - Use descriptive test names that explain what is being tested
 - Aim for good test coverage but focus on testing important functionality
+
+**Backend Testing (pytest):**
+- Place tests in `backend/tests/`
+- Name test files `test_*.py`
+- Use fixtures for common test data
+- Test both success and error cases
+
+**Frontend Testing (Vitest):**
+- Place tests in `frontend/src/test/` or alongside components as `*.test.ts(x)`
+- Use Vitest for unit tests
+- Use @testing-library/react for component testing
+- Test user interactions and edge cases
 
 ## Commit Message Guidelines
 

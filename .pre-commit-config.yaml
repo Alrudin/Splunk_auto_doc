@@ -11,13 +11,17 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
+  # Backend: Python linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.8
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/
       - id: ruff-format
+        files: ^backend/
 
+  # Backend: Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.1
     hooks:
@@ -29,3 +33,49 @@ repos:
           - sqlalchemy
           - sqlmodel
           - types-psycopg2
+
+  # Backend: Testing
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c 'cd backend && pytest tests/ -v --tb=short'
+        language: system
+        pass_filenames: false
+        files: ^backend/
+        types: [python]
+        stages: [commit]
+
+  # Frontend: ESLint
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx)$
+        stages: [commit]
+
+  # Frontend: Prettier
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd frontend && npm run format:check'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|md)$
+        stages: [commit]
+
+  # Frontend: Testing
+  - repo: local
+    hooks:
+      - id: vitest
+        name: vitest
+        entry: bash -c 'cd frontend && npm run test -- --run'
+        language: system
+        pass_filenames: false
+        files: ^frontend/
+        types: [ts, tsx]
+        stages: [commit]
