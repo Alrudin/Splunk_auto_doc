@@ -14,12 +14,12 @@ Thank you for your interest in contributing to Splunk Auto Doc! This document pr
    ```bash
    # Install backend dependencies
    pip install -e ".[dev]"
-   
+
    # Install frontend dependencies
    cd frontend
    npm install
    cd ..
-   
+
    # Set up pre-commit hooks
    pre-commit install
    ```
@@ -28,7 +28,7 @@ Thank you for your interest in contributing to Splunk Auto Doc! This document pr
    ```bash
    # Backend tests
    pytest backend/tests/
-   
+
    # Frontend tests
    cd frontend
    npm run test
@@ -140,13 +140,13 @@ pre-commit run
    pytest backend/tests/
    ruff check backend/
    mypy backend/app/
-   
+
    # Frontend
    cd frontend
    npm run lint
    npm run test
    cd ..
-   
+
    # Or use pre-commit to run all checks
    pre-commit run --all-files
    ```

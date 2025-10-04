@@ -66,7 +66,7 @@ Key features:
    ```bash
    # Start all services with Docker Compose
    docker compose up -d
-   
+
    # Or use the Makefile
    make docker-up
    ```
@@ -83,17 +83,17 @@ Key features:
    ```bash
    # Install Python dependencies
    pip install -e ".[dev]"
-   
+
    # Set up pre-commit hooks
    pre-commit install
-   
+
    # Run the API server (option 1)
    make api
-   
+
    # Run the API server (option 2)
    cd backend
    python -m app.main
-   
+
    # Run the API server (option 3)
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
@@ -102,16 +102,16 @@ Key features:
    ```bash
    # Navigate to frontend directory
    cd frontend
-   
+
    # Install dependencies
    npm install
-   
+
    # Start development server
    npm run dev
-   
+
    # Build for production
    npm run build
-   
+
    # Run linter
    npm run lint
    ```
@@ -121,10 +121,10 @@ Key features:
    # Run database migrations
    cd backend
    alembic upgrade head
-   
+
    # Check current migration version
    alembic current
-   
+
    # View migration history
    alembic history
    ```
@@ -133,7 +133,7 @@ Key features:
    ```bash
    # Run all tests
    pytest backend/tests/
-   
+
    # Run with coverage
    pytest backend/tests/ --cov=backend/app
    ```
@@ -142,10 +142,10 @@ Key features:
    ```bash
    # Format code
    ruff format backend/
-   
+
    # Run linter
    ruff check backend/
-   
+
    # Type checking
    mypy backend/app/
    ```
@@ -302,7 +302,7 @@ pre-commit clean
    ```bash
    # Backend
    ruff format backend/
-   
+
    # Frontend
    cd frontend && npm run format
    ```
@@ -311,7 +311,7 @@ pre-commit clean
    ```bash
    # Backend
    pytest backend/tests/ -v
-   
+
    # Frontend
    cd frontend && npm run test
    ```

@@ -1,7 +1,7 @@
 # Database Migration Verification Report
 
-**Date**: 2025-10-02  
-**Schema Version**: 001 (Initial Schema)  
+**Date**: 2025-10-02
+**Schema Version**: 001 (Initial Schema)
 **Status**: ✅ VERIFIED
 
 ## Summary
@@ -72,7 +72,7 @@ Result: ✅ Foreign key cascade working (0 files remaining)
 
 ```
               List of relations
- Schema |      Name       | Type  |  Owner   
+ Schema |      Name       | Type  |  Owner
 --------+-----------------+-------+----------
  public | alembic_version | table | postgres
  public | files           | table | postgres

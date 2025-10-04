@@ -22,15 +22,15 @@ logger = logging.getLogger(__name__)
 
 class MockAPIHandler(BaseHTTPRequestHandler):
     """Mock API handler to simulate FastAPI endpoints."""
-    
+
     def do_GET(self):
         """Handle GET requests."""
         parsed_path = urlparse(self.path)
         path = parsed_path.path
-        
+
         # Log the request
         logger.info(f"GET {path} - Mock API request")
-        
+
         if path == '/v1/health':
             # V1 health endpoint
             response = {"status": "ok"}
@@ -47,7 +47,7 @@ class MockAPIHandler(BaseHTTPRequestHandler):
             # 404 for unknown paths
             response = {"error": "Not found"}
             self.send_json_response(404, response)
-    
+
     def send_json_response(self, status_code, data):
         """Send a JSON response."""
         self.send_response(status_code)
@@ -55,7 +55,7 @@ class MockAPIHandler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
-    
+
     def log_message(self, format, *args):
         """Override default logging to use our logger."""
         logger.info(f"{self.address_string()} - {format % args}")
@@ -66,13 +66,13 @@ def main():
     port = 8000
     server_address = ('', port)
     httpd = HTTPServer(server_address, MockAPIHandler)
-    
+
     logger.info(f"Starting mock Splunk Auto Doc API server on port {port}")
     logger.info(f"Available endpoints:")
     logger.info(f"  GET /v1/health -> {{\"status\": \"ok\"}}")
     logger.info(f"  GET /health/   -> legacy health check")
     logger.info(f"Access server at: http://localhost:{port}")
-    
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

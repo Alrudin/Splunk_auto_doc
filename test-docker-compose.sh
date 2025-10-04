@@ -67,7 +67,7 @@ for service in "${services[@]}"; do
     fi
 done
 
-# Check network configuration  
+# Check network configuration
 if docker compose config | grep -q "app-network"; then
     echo "✅ Custom network 'app-network' is configured"
 else
@@ -90,7 +90,7 @@ echo ""
 echo "🎉 All Docker Compose configuration tests passed!"
 echo ""
 echo "📋 Services configured:"
-echo "   • API (FastAPI backend) - http://localhost:8000"  
+echo "   • API (FastAPI backend) - http://localhost:8000"
 echo "   • Database (PostgreSQL) - localhost:5432"
 echo "   • MinIO (Object Storage) - http://localhost:9000 (console: http://localhost:9001)"
 echo "   • Redis (Cache) - localhost:6379"

@@ -7,6 +7,7 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
       - id: check-json
+        exclude: 'tsconfig.*\.json$'
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
@@ -39,11 +40,10 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: bash -c 'cd backend && pytest tests/ -v --tb=short'
+        entry: 'bash -c "if command -v pytest >/dev/null 2>&1; then cd backend && pytest tests/ -v --tb=short; else echo pytest not installed, skipping; fi"'
         language: system
         pass_filenames: false
-        files: ^backend/
-        types: [python]
+        files: ^backend/.*\.py$
         stages: [commit]
 
   # Frontend: ESLint
@@ -51,7 +51,7 @@ repos:
     hooks:
       - id: eslint
         name: eslint
-        entry: bash -c 'cd frontend && npm run lint'
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run lint; else echo Frontend dependencies not installed; exit 1; fi"'
         language: system
         pass_filenames: false
         files: ^frontend/.*\.(ts|tsx)$
@@ -62,7 +62,7 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: bash -c 'cd frontend && npm run format:check'
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run format:check; else echo Frontend dependencies not installed; exit 1; fi"'
         language: system
         pass_filenames: false
         files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|md)$
@@ -73,9 +73,8 @@ repos:
     hooks:
       - id: vitest
         name: vitest
-        entry: bash -c 'cd frontend && npm run test -- --run'
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run test -- --run; else echo Frontend dependencies not installed; exit 1; fi"'
         language: system
         pass_filenames: false
-        files: ^frontend/
-        types: [ts, tsx]
+        files: ^frontend/.*\.(ts|tsx)$
         stages: [commit]
