@@ -39,6 +39,20 @@ class StructuredFormatter(logging.Formatter):
             log_data["request_size"] = record.request_size
         if hasattr(record, "response_size"):
             log_data["response_size"] = record.response_size
+        if hasattr(record, "upload_filename"):
+            log_data["upload_filename"] = record.upload_filename
+        if hasattr(record, "size_bytes"):
+            log_data["size_bytes"] = record.size_bytes
+        if hasattr(record, "sha256"):
+            log_data["sha256"] = record.sha256
+        if hasattr(record, "storage_key"):
+            log_data["storage_key"] = record.storage_key
+        if hasattr(record, "type"):
+            log_data["type"] = record.type
+        if hasattr(record, "label"):
+            log_data["label"] = record.label
+        if hasattr(record, "error"):
+            log_data["error"] = record.error
 
         return json.dumps(log_data)
 

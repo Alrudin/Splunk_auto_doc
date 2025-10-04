@@ -73,7 +73,7 @@ async def upload_file(
     logger.info(
         "Received upload request",
         extra={
-            "filename": file.filename,
+            "upload_filename": file.filename,
             "type": type.value,
             "label": label,
         }
@@ -114,7 +114,7 @@ async def upload_file(
             "File processed",
             extra={
                 "run_id": run.id,
-                "filename": file.filename,
+                "upload_filename": file.filename,
                 "size_bytes": file_size,
                 "sha256": sha256_hash,
             }
