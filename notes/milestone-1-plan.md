@@ -1,7 +1,7 @@
 # Milestone 1 Plan – Project Skeleton & Upload Ingestion Foundation
 
-Milestone Code: M1  
-Focus Window: Weeks 1–2 (adjust as needed)  
+Milestone Code: M1
+Focus Window: Weeks 1–2 (adjust as needed)
 Primary Goal: Stand up a reliable, testable baseline platform that can accept an upload, persist an ingestion run record, store the raw archive, and surface the run + basic statistics in a minimal UI. This creates the substrate for later parsing, normalization, and resolution logic.
 
 ---
@@ -74,7 +74,7 @@ Tables (minimum viable):
   - sha256
   - size_bytes
   - stored_object_key (reference to blob)
-  
+
 Migration file created & applied via Alembic.
 
 ### 3.3 Backend Application Skeleton
@@ -124,7 +124,7 @@ Migration file created & applied via Alembic.
   - `minio`: (optional) or use host volume path.
   - `frontend`: dev server.
   - `redis`: placeholder (not yet consumed).
-  
+
 Optional: a make target (e.g., `make dev`).
 
 ### 3.7 Observability (M1 Level)

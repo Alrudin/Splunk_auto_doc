@@ -1,7 +1,7 @@
 """Initial schema: ingestion_runs and files tables
 
 Revision ID: 001
-Revises: 
+Revises:
 Create Date: 2024-01-15 00:00:00.000000
 
 """
@@ -31,13 +31,13 @@ def upgrade() -> None:
         sa.Column('notes', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create index on created_at for efficient queries
     op.create_index('ix_ingestion_runs_created_at', 'ingestion_runs', ['created_at'])
-    
+
     # Create index on status for filtering
     op.create_index('ix_ingestion_runs_status', 'ingestion_runs', ['status'])
-    
+
     # Create files table
     op.create_table(
         'files',
@@ -48,16 +48,16 @@ def upgrade() -> None:
         sa.Column('size_bytes', sa.BigInteger(), nullable=False),
         sa.Column('stored_object_key', sa.String(length=512), nullable=False),
         sa.ForeignKeyConstraint(
-            ['run_id'], 
-            ['ingestion_runs.id'], 
+            ['run_id'],
+            ['ingestion_runs.id'],
             ondelete='CASCADE'
         ),
         sa.PrimaryKeyConstraint('id')
     )
-    
+
     # Create index on run_id for efficient FK lookups
     op.create_index('ix_files_run_id', 'files', ['run_id'])
-    
+
     # Create index on sha256 for deduplication checks
     op.create_index('ix_files_sha256', 'files', ['sha256'])
 
@@ -67,7 +67,7 @@ def downgrade() -> None:
     op.drop_index('ix_files_sha256', table_name='files')
     op.drop_index('ix_files_run_id', table_name='files')
     op.drop_table('files')
-    
+
     op.drop_index('ix_ingestion_runs_status', table_name='ingestion_runs')
     op.drop_index('ix_ingestion_runs_created_at', table_name='ingestion_runs')
     op.drop_table('ingestion_runs')

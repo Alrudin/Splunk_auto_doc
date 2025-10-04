@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom'
 
 export default function MainLayout() {
   return (
@@ -14,7 +14,7 @@ export default function MainLayout() {
                   Splunk Auto Doc
                 </Link>
               </div>
-              
+
               {/* Navigation Links */}
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
@@ -37,7 +37,7 @@ export default function MainLayout() {
                 </Link>
               </div>
             </div>
-            
+
             {/* Right side items */}
             <div className="flex items-center">
               <a
@@ -58,5 +58,5 @@ export default function MainLayout() {
         <Outlet />
       </main>
     </div>
-  );
+  )
 }

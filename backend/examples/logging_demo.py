@@ -131,29 +131,29 @@ def example_correlation_tracking():
     print("=" * 70 + "\n")
 
     setup_logging(log_level="INFO", log_format="text")
-    
+
     print("# Same request_id appears across all log entries:\n")
-    
+
     middleware_logger = logging.getLogger("app.core.middleware")
     uploads_logger = logging.getLogger("app.api.v1.uploads")
-    
+
     request_id = "abc-123-def-456"
-    
+
     middleware_logger.info(
         "Request started: POST /v1/uploads",
         extra={"request_id": request_id, "method": "POST", "path": "/v1/uploads"}
     )
-    
+
     uploads_logger.info(
         "Received upload request",
         extra={"request_id": request_id, "upload_filename": "test.tar.gz"}
     )
-    
+
     uploads_logger.info(
         "Created ingestion run with status=pending",
         extra={"request_id": request_id, "run_id": 44}
     )
-    
+
     middleware_logger.info(
         "Request completed: POST /v1/uploads - Status: 201 - Time: 0.5s",
         extra={
@@ -165,7 +165,7 @@ def example_correlation_tracking():
             "run_id": 44
         }
     )
-    
+
     print(f"\n→ All entries share request_id='{request_id}' for traceability")
 
 
@@ -185,11 +185,11 @@ if __name__ == "__main__":
     print("=" * 70)
     print("""
 In your .env file:
-    
+
     # Human-readable format (development)
     LOG_LEVEL=INFO
     LOG_FORMAT=text
-    
+
     # Machine-parseable format (production)
     LOG_LEVEL=WARNING
     LOG_FORMAT=json

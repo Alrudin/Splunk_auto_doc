@@ -21,7 +21,7 @@ router = APIRouter()
 
 def get_storage() -> StorageBackend:
     """Dependency to get storage backend instance.
-    
+
     Returns:
         StorageBackend: Configured storage backend instance
     """
@@ -47,7 +47,7 @@ async def upload_file(
     storage: StorageBackend = Depends(get_storage),
 ) -> IngestionRunResponse:
     """Handle file upload and create ingestion run.
-    
+
     This endpoint:
     1. Creates an ingestion run record with status=pending
     2. Computes SHA256 hash of the uploaded file
@@ -55,7 +55,7 @@ async def upload_file(
     4. Persists file metadata to the database
     5. Updates run status to stored
     6. Returns the run details
-    
+
     Args:
         file: Uploaded file (multipart)
         type: Type of ingestion (ds_etc, instance_etc, app_bundle, single_conf)
@@ -63,10 +63,10 @@ async def upload_file(
         notes: Optional notes
         db: Database session
         storage: Storage backend
-    
+
     Returns:
         IngestionRunResponse: Created ingestion run details
-        
+
     Raises:
         HTTPException: If upload or storage fails
     """
@@ -78,14 +78,14 @@ async def upload_file(
             "label": label,
         }
     )
-    
+
     # Validate file was provided
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No file provided"
         )
-    
+
     # Create ingestion run with pending status
     run = IngestionRun(
         type=type,
@@ -95,21 +95,21 @@ async def upload_file(
     )
     db.add(run)
     db.flush()  # Get the run ID without committing
-    
+
     # Store run_id in request state for middleware logging
     request.state.run_id = run.id
-    
+
     logger.info(
         "Created ingestion run with status=pending",
         extra={"run_id": run.id}
     )
-    
+
     try:
         # Read file content and compute hash
         file_content = await file.read()
         file_size = len(file_content)
         sha256_hash = hashlib.sha256(file_content).hexdigest()
-        
+
         logger.info(
             "File processed",
             extra={
@@ -119,22 +119,22 @@ async def upload_file(
                 "sha256": sha256_hash,
             }
         )
-        
+
         # Reset file pointer and store blob
         await file.seek(0)
         storage_key = f"runs/{run.id}/{file.filename}"
-        
+
         # Store file using storage backend
         # We need to wrap the UploadFile in a way that storage backend can handle
         import io
         file_obj = io.BytesIO(file_content)
         stored_key = storage.store_blob(file_obj, storage_key)
-        
+
         logger.info(
             "Stored file in storage backend",
             extra={"run_id": run.id, "storage_key": stored_key}
         )
-        
+
         # Create file record
         file_record = FileModel(
             run_id=run.id,
@@ -144,21 +144,21 @@ async def upload_file(
             stored_object_key=stored_key,
         )
         db.add(file_record)
-        
+
         # Update run status to stored
         run.status = IngestionStatus.STORED
-        
+
         # Commit transaction
         db.commit()
         db.refresh(run)
-        
+
         logger.info(
             "Successfully completed upload for run",
             extra={"run_id": run.id, "status": "stored"}
         )
-        
+
         return IngestionRunResponse.model_validate(run)
-        
+
     except StorageError as e:
         logger.error(
             "Storage error during upload",
@@ -166,12 +166,12 @@ async def upload_file(
             exc_info=True
         )
         db.rollback()
-        
+
         # Update run status to failed
         run.status = IngestionStatus.FAILED
         run.notes = f"Storage error: {str(e)}" if not run.notes else f"{run.notes}\nStorage error: {str(e)}"
         db.commit()
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to store file: {str(e)}"
@@ -183,12 +183,12 @@ async def upload_file(
             exc_info=True
         )
         db.rollback()
-        
+
         # Update run status to failed
         run.status = IngestionStatus.FAILED
         run.notes = f"Upload error: {str(e)}" if not run.notes else f"{run.notes}\nUpload error: {str(e)}"
         db.commit()
-        
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process upload: {str(e)}"

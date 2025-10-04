@@ -33,10 +33,19 @@ Key features:
 ### Infrastructure
 - **Docker Compose** - Local development orchestration
 - **MinIO** - S3-compatible object storage for file uploads
+
+### Development Tooling
+**Backend:**
 - **Ruff** - Python linting and formatting
 - **mypy** - Static type checking
 - **pytest** - Testing framework
 - **pre-commit** - Git hooks for code quality
+
+**Frontend:**
+- **ESLint** - JavaScript/TypeScript linting
+- **Prettier** - Code formatting
+- **Vitest** - Unit testing framework
+- **TypeScript** - Type checking
 
 ## Quick Start
 
@@ -57,7 +66,7 @@ Key features:
    ```bash
    # Start all services with Docker Compose
    docker compose up -d
-   
+
    # Or use the Makefile
    make docker-up
    ```
@@ -74,17 +83,17 @@ Key features:
    ```bash
    # Install Python dependencies
    pip install -e ".[dev]"
-   
+
    # Set up pre-commit hooks
    pre-commit install
-   
+
    # Run the API server (option 1)
    make api
-   
+
    # Run the API server (option 2)
    cd backend
    python -m app.main
-   
+
    # Run the API server (option 3)
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
@@ -93,16 +102,16 @@ Key features:
    ```bash
    # Navigate to frontend directory
    cd frontend
-   
+
    # Install dependencies
    npm install
-   
+
    # Start development server
    npm run dev
-   
+
    # Build for production
    npm run build
-   
+
    # Run linter
    npm run lint
    ```
@@ -112,10 +121,10 @@ Key features:
    # Run database migrations
    cd backend
    alembic upgrade head
-   
+
    # Check current migration version
    alembic current
-   
+
    # View migration history
    alembic history
    ```
@@ -124,7 +133,7 @@ Key features:
    ```bash
    # Run all tests
    pytest backend/tests/
-   
+
    # Run with coverage
    pytest backend/tests/ --cov=backend/app
    ```
@@ -133,13 +142,192 @@ Key features:
    ```bash
    # Format code
    ruff format backend/
-   
+
    # Run linter
    ruff check backend/
-   
+
    # Type checking
    mypy backend/app/
    ```
+
+## Development Tools & Pre-Commit Hooks
+
+### Tooling Overview
+
+This project uses a comprehensive set of tools to maintain code quality:
+
+**Backend (Python)**
+- **Ruff** - Fast Python linter and formatter (replaces flake8, black, isort)
+- **mypy** - Static type checker for Python
+- **pytest** - Testing framework with coverage support
+
+**Frontend (TypeScript/React)**
+- **ESLint** - JavaScript/TypeScript linter
+- **Prettier** - Code formatter
+- **Vitest** - Fast unit test framework (Vite-native alternative to Jest)
+- **TypeScript** - Static type checking
+
+### Installing Development Tools
+
+**Backend tooling:**
+```bash
+# Install all Python development dependencies
+pip install -e ".[dev]"
+
+# This includes: ruff, mypy, pytest, pytest-asyncio, pytest-cov, pre-commit
+```
+
+**Frontend tooling:**
+```bash
+cd frontend
+npm install
+
+# This includes: eslint, prettier, vitest, typescript, and their plugins
+```
+
+### Running Quality Checks
+
+**Backend:**
+```bash
+# Format Python code
+make format
+# or
+ruff format backend/
+
+# Lint Python code
+make lint
+# or
+ruff check backend/
+
+# Type check Python code
+make type-check
+# or
+mypy backend/app/
+
+# Run Python tests
+make test
+# or
+pytest backend/tests/ -v
+
+# Run tests with coverage
+pytest backend/tests/ --cov=backend/app
+```
+
+**Frontend:**
+```bash
+cd frontend
+
+# Lint TypeScript/React code
+npm run lint
+
+# Format code with Prettier
+npm run format
+
+# Check formatting (CI mode)
+npm run format:check
+
+# Run tests
+npm run test
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
+
+# Build TypeScript
+npm run build
+```
+
+### Pre-Commit Hooks
+
+Pre-commit hooks automatically run quality checks before each commit to catch issues early.
+
+**Installation:**
+```bash
+# Install pre-commit hooks (run once after cloning)
+pip install -e ".[dev]"
+pre-commit install
+
+# Or if you have pre-commit installed separately:
+pre-commit install
+```
+
+**What gets checked:**
+- **Python files**: Ruff linting & formatting, mypy type checking, pytest tests
+- **TypeScript files**: ESLint linting, Prettier formatting, Vitest tests
+- **All files**: Trailing whitespace, EOF fixes, YAML/JSON/TOML validation
+
+**Running hooks manually:**
+```bash
+# Run on all files (useful after installation or updates)
+pre-commit run --all-files
+
+# Run on staged files only (this happens automatically on commit)
+pre-commit run
+
+# Skip hooks for a specific commit (not recommended)
+git commit --no-verify -m "message"
+```
+
+**Updating hooks:**
+```bash
+# Update hook versions to latest
+pre-commit autoupdate
+
+# Clean hook cache
+pre-commit clean
+```
+
+### Troubleshooting
+
+**Pre-commit hook failures:**
+
+1. **"pytest not found"** - Install backend dependencies:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+2. **"npm run lint failed"** - Install frontend dependencies:
+   ```bash
+   cd frontend && npm install
+   ```
+
+3. **Type errors from mypy** - Fix the reported type issues or add type ignores:
+   ```python
+   # type: ignore[error-code]
+   ```
+
+4. **Formatting issues** - Auto-fix with formatters:
+   ```bash
+   # Backend
+   ruff format backend/
+
+   # Frontend
+   cd frontend && npm run format
+   ```
+
+5. **Test failures** - Fix failing tests before committing:
+   ```bash
+   # Backend
+   pytest backend/tests/ -v
+
+   # Frontend
+   cd frontend && npm run test
+   ```
+
+**Skipping specific hooks temporarily:**
+```bash
+# Set SKIP environment variable
+SKIP=eslint,prettier git commit -m "WIP: work in progress"
+
+# Skip all hooks (use sparingly)
+git commit --no-verify -m "Emergency fix"
+```
+
+**CI/CD behavior:**
+The CI pipeline runs the same checks as pre-commit hooks plus additional integration tests. All checks must pass for PRs to be merged.
+
 
 ### API Usage Example
 

@@ -65,7 +65,7 @@ docker-build: ## Build Docker images
 docker-restart: ## Restart all services
 	docker compose restart
 
-docker-clean: ## Stop and remove all containers, networks, and volumes  
+docker-clean: ## Stop and remove all containers, networks, and volumes
 	docker compose down -v --remove-orphans
 
 docker-test: ## Test Docker Compose configuration

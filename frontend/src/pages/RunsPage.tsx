@@ -1,22 +1,24 @@
-import { useQuery } from '@tanstack/react-query';
-import { useSearchParams, Link } from 'react-router-dom';
-import runsApi from '../api/runs';
+import { useQuery } from '@tanstack/react-query'
+import { useSearchParams, Link } from 'react-router-dom'
+import runsApi from '../api/runs'
 
 export default function RunsPage() {
-  const [searchParams] = useSearchParams();
-  const success = searchParams.get('success');
-  const runId = searchParams.get('runId');
+  const [searchParams] = useSearchParams()
+  const success = searchParams.get('success')
+  const runId = searchParams.get('runId')
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['runs'],
     queryFn: () => runsApi.getRuns(),
-  });
+  })
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Ingestion Runs</h1>
-        <p className="mt-2 text-gray-600">View and manage your configuration upload history</p>
+        <p className="mt-2 text-gray-600">
+          View and manage your configuration upload history
+        </p>
       </div>
 
       {/* Success Message */}
@@ -60,7 +62,9 @@ export default function RunsPage() {
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-sm text-red-800">
             <strong>Error loading runs:</strong>{' '}
-            {error instanceof Error ? error.message : 'An unknown error occurred'}
+            {error instanceof Error
+              ? error.message
+              : 'An unknown error occurred'}
           </p>
         </div>
       )}
@@ -83,7 +87,9 @@ export default function RunsPage() {
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No runs yet</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No runs yet
+              </h3>
               <p className="mt-1 text-sm text-gray-500">
                 Get started by uploading your first configuration file.
               </p>
@@ -139,7 +145,7 @@ export default function RunsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data.items.map((run) => (
+                {data.items.map(run => (
                   <tr key={run.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {run.id}
@@ -171,36 +177,38 @@ export default function RunsPage() {
           {data.items.length > 0 && (
             <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
               <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{data.items.length}</span> of{' '}
-                <span className="font-medium">{data.total}</span> runs
+                Showing <span className="font-medium">{data.items.length}</span>{' '}
+                of <span className="font-medium">{data.total}</span> runs
               </p>
             </div>
           )}
         </div>
       )}
     </div>
-  );
+  )
 }
 
 interface StatusBadgeProps {
-  status: string;
+  status: string
 }
 
 function StatusBadge({ status }: StatusBadgeProps) {
-  const statusLower = status.toLowerCase();
-  
-  let colorClasses = 'bg-gray-100 text-gray-800';
+  const statusLower = status.toLowerCase()
+
+  let colorClasses = 'bg-gray-100 text-gray-800'
   if (statusLower === 'completed' || statusLower === 'success') {
-    colorClasses = 'bg-green-100 text-green-800';
+    colorClasses = 'bg-green-100 text-green-800'
   } else if (statusLower === 'pending' || statusLower === 'processing') {
-    colorClasses = 'bg-yellow-100 text-yellow-800';
+    colorClasses = 'bg-yellow-100 text-yellow-800'
   } else if (statusLower === 'failed' || statusLower === 'error') {
-    colorClasses = 'bg-red-100 text-red-800';
+    colorClasses = 'bg-red-100 text-red-800'
   }
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClasses}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClasses}`}
+    >
       {status}
     </span>
-  );
+  )
 }

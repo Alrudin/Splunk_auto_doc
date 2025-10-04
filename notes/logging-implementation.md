@@ -45,7 +45,7 @@ This implementation adds comprehensive structured logging and request middleware
   - Environment (development/staging/production)
   - Debug mode status
   - Logging configuration
-  
+
 - **Shutdown Events**:
   - Clean shutdown logging
 

@@ -38,14 +38,14 @@ React-based frontend application for Splunk Auto Doc, built with Vite, TypeScrip
    ```bash
    npm run dev
    ```
-   
+
    The app will be available at `http://localhost:3000`
 
 2. **Build for production**
    ```bash
    npm run build
    ```
-   
+
    Production files will be generated in the `dist/` directory
 
 3. **Preview production build**

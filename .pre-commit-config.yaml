@@ -7,17 +7,22 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
       - id: check-json
+        exclude: 'tsconfig.*\.json$'
       - id: check-toml
       - id: check-merge-conflict
       - id: debug-statements
 
+  # Backend: Python linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.8
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        files: ^backend/
       - id: ruff-format
+        files: ^backend/
 
+  # Backend: Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.1
     hooks:
@@ -29,3 +34,47 @@ repos:
           - sqlalchemy
           - sqlmodel
           - types-psycopg2
+
+  # Backend: Testing
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: 'bash -c "if command -v pytest >/dev/null 2>&1; then cd backend && pytest tests/ -v --tb=short; else echo pytest not installed, skipping; fi"'
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
+        stages: [commit]
+
+  # Frontend: ESLint
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run lint; else echo Frontend dependencies not installed; exit 1; fi"'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx)$
+        stages: [commit]
+
+  # Frontend: Prettier
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run format:check; else echo Frontend dependencies not installed; exit 1; fi"'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|md)$
+        stages: [commit]
+
+  # Frontend: Testing
+  - repo: local
+    hooks:
+      - id: vitest
+        name: vitest
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run test -- --run; else echo Frontend dependencies not installed; exit 1; fi"'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx)$
+        stages: [commit]
