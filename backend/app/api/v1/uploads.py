@@ -4,7 +4,7 @@ import hashlib
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -38,6 +38,7 @@ def get_storage() -> StorageBackend:
 
 @router.post("/uploads", response_model=IngestionRunResponse, status_code=status.HTTP_201_CREATED)
 async def upload_file(
+    request: Request,
     file: Annotated[UploadFile, File(description="Configuration archive file (tar.gz or zip)")],
     type: Annotated[IngestionType, Form(description="Type of configuration upload")],
     label: Annotated[str | None, Form(description="Optional human-readable label")] = None,
@@ -69,7 +70,14 @@ async def upload_file(
     Raises:
         HTTPException: If upload or storage fails
     """
-    logger.info(f"Received upload request: file={file.filename}, type={type.value}, label={label}")
+    logger.info(
+        "Received upload request",
+        extra={
+            "filename": file.filename,
+            "type": type.value,
+            "label": label,
+        }
+    )
     
     # Validate file was provided
     if not file.filename:
@@ -88,7 +96,13 @@ async def upload_file(
     db.add(run)
     db.flush()  # Get the run ID without committing
     
-    logger.info(f"Created ingestion run {run.id} with status=pending")
+    # Store run_id in request state for middleware logging
+    request.state.run_id = run.id
+    
+    logger.info(
+        "Created ingestion run with status=pending",
+        extra={"run_id": run.id}
+    )
     
     try:
         # Read file content and compute hash
@@ -96,7 +110,15 @@ async def upload_file(
         file_size = len(file_content)
         sha256_hash = hashlib.sha256(file_content).hexdigest()
         
-        logger.info(f"File {file.filename}: size={file_size} bytes, sha256={sha256_hash}")
+        logger.info(
+            "File processed",
+            extra={
+                "run_id": run.id,
+                "filename": file.filename,
+                "size_bytes": file_size,
+                "sha256": sha256_hash,
+            }
+        )
         
         # Reset file pointer and store blob
         await file.seek(0)
@@ -108,7 +130,10 @@ async def upload_file(
         file_obj = io.BytesIO(file_content)
         stored_key = storage.store_blob(file_obj, storage_key)
         
-        logger.info(f"Stored file with key: {stored_key}")
+        logger.info(
+            "Stored file in storage backend",
+            extra={"run_id": run.id, "storage_key": stored_key}
+        )
         
         # Create file record
         file_record = FileModel(
@@ -127,12 +152,19 @@ async def upload_file(
         db.commit()
         db.refresh(run)
         
-        logger.info(f"Successfully completed upload for run {run.id}, status=stored")
+        logger.info(
+            "Successfully completed upload for run",
+            extra={"run_id": run.id, "status": "stored"}
+        )
         
         return IngestionRunResponse.model_validate(run)
         
     except StorageError as e:
-        logger.error(f"Storage error for run {run.id}: {e}")
+        logger.error(
+            "Storage error during upload",
+            extra={"run_id": run.id, "error": str(e)},
+            exc_info=True
+        )
         db.rollback()
         
         # Update run status to failed
@@ -145,7 +177,11 @@ async def upload_file(
             detail=f"Failed to store file: {str(e)}"
         )
     except Exception as e:
-        logger.error(f"Unexpected error during upload for run {run.id}: {e}", exc_info=True)
+        logger.error(
+            "Unexpected error during upload",
+            extra={"run_id": run.id, "error": str(e)},
+            exc_info=True
+        )
         db.rollback()
         
         # Update run status to failed
