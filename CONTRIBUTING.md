@@ -34,6 +34,46 @@ Thank you for your interest in contributing to Splunk Auto Doc! This document pr
    npm run test
    ```
 
+4. **Understanding Database Readiness**
+
+   The project implements a robust database readiness strategy to prevent race conditions. When developing locally or in CI:
+
+   **Docker Compose (Automatic):**
+   ```bash
+   # Database readiness is handled automatically
+   docker compose up -d
+
+   # The API waits for the database before starting
+   docker compose logs -f api
+   ```
+
+   **Local Development (Manual):**
+   ```bash
+   # If running services separately, ensure database is ready first
+   make wait-for-db
+
+   # Or use the Python script directly
+   cd backend
+   export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/splunk_auto_doc"
+   python scripts/wait_for_db.py
+
+   # Then run migrations
+   alembic upgrade head
+
+   # Finally start the API
+   python -m app.main
+   ```
+
+   **Readiness Checks:**
+   ```bash
+   # Check if the API and database are ready
+   curl http://localhost:8000/health/ready
+
+   # Returns 200 OK if ready, 503 Service Unavailable if not
+   ```
+
+   See the [Database Readiness Strategy](README.md#database-readiness-strategy) section in the README for complete documentation.
+
 ## Coding Standards
 
 This project follows strict coding standards to ensure consistency and maintainability. Please refer to [`notes/github-instructions.md`](notes/github-instructions.md) for detailed coding standards.
@@ -57,15 +97,15 @@ def create_ingestion_run(
     label: str | None = None
 ) -> IngestionRun:
     """Create a new ingestion run from an uploaded file.
-    
+
     Args:
         file_path: Path to the uploaded file
         upload_type: Type of upload (ds_etc, instance_etc, etc.)
         label: Optional human-readable label
-        
+
     Returns:
         IngestionRun: The created ingestion run
-        
+
     Raises:
         ValueError: If upload_type is invalid
     """
@@ -107,12 +147,12 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   allowedTypes,
 }) => {
   const [file, setFile] = useState<File | null>(null)
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // Implementation
   }
-  
+
   return <form onSubmit={handleSubmit}>...</form>
 }
 
@@ -245,7 +285,9 @@ All pull requests must pass CI checks before they can be merged. The CI pipeline
 
 **Backend CI** [![Backend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/backend-ci.yml)
 - Runs on Python 3.11 and 3.12
-- Checks: Ruff linting → Ruff format → mypy type checking → pytest with coverage
+- Includes PostgreSQL service with health checks
+- Automatically waits for database readiness before running migrations/tests
+- Checks: Wait for DB → Run migrations → Ruff linting → Ruff format → mypy type checking → pytest with coverage
 - All steps must pass for the PR to be approved
 
 **Frontend CI** [![Frontend CI](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/Alrudin/Splunk_auto_doc/actions/workflows/frontend-ci.yml)

@@ -1,4 +1,4 @@
-.PHONY: help install dev test test-backend test-frontend test-coverage test-all lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api migrate migrate-test
+.PHONY: help install dev test test-backend test-frontend test-coverage test-all lint format type-check clean docker-up docker-down docker-logs docker-build docker-restart docker-clean docker-test api migrate migrate-test wait-for-db
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -104,3 +104,6 @@ migrate: ## Run database migrations
 
 migrate-test: ## Test database migrations
 	cd backend && python scripts/test_migration.py
+
+wait-for-db: ## Wait for database to be ready
+	cd backend && python scripts/wait_for_db.py

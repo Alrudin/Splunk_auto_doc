@@ -862,6 +862,74 @@ alembic history
 
 For development, ensure PostgreSQL is running (via Docker Compose) before applying migrations.
 
+### Database Readiness Strategy
+
+The application implements a robust database readiness/wait strategy to prevent race conditions during startup in both local development and CI environments. This ensures the database is fully ready before the application starts or migrations run.
+
+**Automatic Wait on Startup:**
+
+When using Docker Compose, the API service automatically waits for the database to be ready before starting:
+
+```bash
+# Start all services - API will wait for database automatically
+docker compose up -d
+
+# Check logs to see the wait process
+docker compose logs -f api
+```
+
+**Manual Database Wait:**
+
+For local development or custom setups, you can manually wait for the database:
+
+```bash
+# Using Python script (recommended)
+cd backend
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/splunk_auto_doc"
+python scripts/wait_for_db.py
+
+# Using shell script (requires PostgreSQL client tools)
+cd backend
+export DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_NAME=splunk_auto_doc
+./scripts/wait-for-db.sh
+
+# With custom retry settings
+python scripts/wait_for_db.py --max-retries 60 --retry-interval 1
+```
+
+**Health Check Endpoints:**
+
+The application provides health check endpoints that verify database connectivity:
+
+```bash
+# Basic health check (always returns 200)
+curl http://localhost:8000/health/
+
+# Readiness check (returns 200 if DB is ready, 503 if not)
+curl http://localhost:8000/health/ready
+curl http://localhost:8000/v1/ready
+```
+
+**CI/CD Integration:**
+
+The CI workflow automatically waits for the database before running migrations and tests. See `.github/workflows/backend-ci.yml` for the implementation.
+
+**Configuration Options:**
+
+Environment variables control the wait behavior:
+- `DB_MAX_RETRIES` - Maximum retry attempts (default: 30)
+- `DB_RETRY_INTERVAL` - Seconds between retries (default: 2)
+- `DATABASE_URL` - Full database connection string (required)
+
+**Troubleshooting:**
+
+If database connection fails:
+1. Verify PostgreSQL container is running: `docker compose ps db`
+2. Check database logs: `docker compose logs db`
+3. Ensure health check passes: `docker compose ps` (should show "healthy")
+4. Test connection manually: `psql $DATABASE_URL -c "SELECT 1;"`
+5. Check environment variables in `.env` file
+
 ## Logging & Monitoring
 
 ### Logging Configuration
@@ -983,8 +1051,19 @@ docker compose ps
 # Check database logs
 docker compose logs db
 
-# Wait for database to be ready before starting API
-# The health check in docker-compose.yml should handle this automatically
+# The API service automatically waits for database readiness
+# If you need to manually wait for the database:
+cd backend
+python scripts/wait_for_db.py
+
+# Test database connectivity
+curl http://localhost:8000/health/ready
+
+# If readiness check fails, check DATABASE_URL environment variable
+docker compose exec api env | grep DATABASE_URL
+
+# Restart services if database was not ready during initial startup
+docker compose restart api
 ```
 
 **MinIO/Storage errors:**
