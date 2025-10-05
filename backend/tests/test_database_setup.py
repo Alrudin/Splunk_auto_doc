@@ -40,6 +40,7 @@ def test_database_creation():
     if not DEPENDENCIES_AVAILABLE:
         pytest.skip(SKIP_REASON)
 
+    #
     # Create test database
     engine = create_engine(
         "sqlite:///:memory:",
