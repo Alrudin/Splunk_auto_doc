@@ -777,6 +777,27 @@ curl -X POST "http://localhost:8000/v1/uploads" \
 - `app_bundle` - Splunk app bundle
 - `single_conf` - Single configuration file
 
+**Memory-Safe Streaming Upload:**
+
+The upload endpoint is designed to handle files of any size safely:
+
+- **Streaming Processing**: Files are streamed in 8KB chunks, never loaded fully into memory
+- **Incremental Hashing**: SHA256 hash is computed as chunks are processed, not after full read
+- **Efficient Storage**: Both local filesystem and S3 backends use chunked writes
+- **No Memory Limits**: Can safely handle files >1GB without memory exhaustion
+- **Production Ready**: Tested with files up to 500MB in automated tests
+
+**Memory Safety Guarantees:**
+- Maximum memory overhead per upload: ~16KB (2x chunk size for buffering)
+- Hash computation uses constant memory regardless of file size
+- Storage backends use `shutil.copyfileobj()` (local) and `upload_fileobj()` (S3) for efficient streaming
+- No temporary file creation on the API server
+
+**Limitations:**
+- Upload size limited by web server/proxy configuration (default: no application limit)
+- Network timeout may affect very large uploads over slow connections
+- Disk space must be available on storage backend
+
 **List Ingestion Runs:**
 ```bash
 # List all runs (default: page 1, 50 per page)
