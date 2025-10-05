@@ -1,14 +1,15 @@
 """Tests for Pydantic schemas."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 
 def test_ingestion_run_schemas():
     """Test IngestionRun schema structure."""
     try:
+        from app.models import IngestionStatus, IngestionType
         from app.schemas import IngestionRunCreate, IngestionRunResponse
-        from app.models import IngestionType, IngestionStatus
 
         # Test create schema
         create_data = {

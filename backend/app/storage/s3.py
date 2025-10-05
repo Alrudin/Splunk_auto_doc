@@ -3,9 +3,18 @@
 import io
 from typing import Any, BinaryIO
 
-import boto3  # type: ignore
-from botocore.client import Config  # type: ignore
-from botocore.exceptions import BotoCoreError, ClientError  # type: ignore
+try:
+    import boto3  # type: ignore[import-untyped]
+    from botocore.client import Config  # type: ignore[import-untyped]
+    from botocore.exceptions import (  # type: ignore[import-untyped]
+        BotoCoreError,
+        ClientError,
+    )
+except ImportError:
+    boto3 = None  # type: ignore[assignment]
+    Config = None  # type: ignore[assignment, misc]
+    BotoCoreError = Exception
+    ClientError = Exception
 
 from app.storage.base import StorageBackend, StorageError
 

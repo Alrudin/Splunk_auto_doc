@@ -1,7 +1,5 @@
 """Unit tests for API endpoints."""
 
-import pytest
-
 
 class TestHealthEndpoint:
     """Tests for the health check endpoint."""
@@ -73,7 +71,7 @@ class TestRunsEndpointUnit:
         """Test that runs list has expected structure."""
         response = client.get("/v1/runs")
         data = response.json()
-        
+
         # Should have pagination fields
         assert "runs" in data
         assert isinstance(data["runs"], list)

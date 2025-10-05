@@ -33,9 +33,7 @@ def test_db():
 
     # Use in-memory SQLite for testing with check_same_thread=False
     engine = create_engine(
-        "sqlite:///:memory:",
-        echo=False,
-        connect_args={"check_same_thread": False}
+        "sqlite:///:memory:", echo=False, connect_args={"check_same_thread": False}
     )
     Base.metadata.create_all(engine)
 
@@ -84,6 +82,7 @@ def client(test_db, test_storage):
         yield test_client
 
 
+@pytest.mark.database
 class TestRunsListEndpoint:
     """Tests for the GET /v1/runs endpoint."""
 
@@ -219,7 +218,9 @@ class TestRunsListEndpoint:
 
         # Verify ordering: newest first (run_ids[0] should be first)
         returned_ids = [run["id"] for run in data["runs"]]
-        assert returned_ids == run_ids  # Should be in order [0, 1, 2] (newest to oldest)
+        assert (
+            returned_ids == run_ids
+        )  # Should be in order [0, 1, 2] (newest to oldest)
 
     def test_list_runs_pagination_limits(self, client):
         """Test pagination parameter validation."""
@@ -239,6 +240,7 @@ class TestRunsListEndpoint:
         assert response.status_code == 200
 
 
+@pytest.mark.database
 class TestRunDetailEndpoint:
     """Tests for the GET /v1/runs/{id} endpoint."""
 
@@ -312,9 +314,16 @@ class TestRunDetailEndpoint:
 
         # Verify timestamp matches (compare as strings since JSON serialization)
         import datetime
-        api_created_at = datetime.datetime.fromisoformat(data["created_at"].replace("Z", "+00:00"))
+
+        api_created_at = datetime.datetime.fromisoformat(
+            data["created_at"].replace("Z", "+00:00")
+        )
         # Allow small time difference due to serialization
-        time_diff = abs((api_created_at - db_created_at.replace(tzinfo=datetime.UTC)).total_seconds())
+        time_diff = abs(
+            (
+                api_created_at - db_created_at.replace(tzinfo=datetime.UTC)
+            ).total_seconds()
+        )
         assert time_diff < 1.0
 
     def test_get_run_not_found(self, client):

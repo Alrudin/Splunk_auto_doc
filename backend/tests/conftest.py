@@ -2,20 +2,20 @@
 
 import io
 import tempfile
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 
 # Try to import dependencies, skip tests if not available
 try:
-    from fastapi.testclient import TestClient
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session, sessionmaker
-
+    from app.api.v1.uploads import get_storage
     from app.core.db import Base, get_db
     from app.main import create_app
     from app.storage import get_storage_backend
-    from app.api.v1.uploads import get_storage
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
 
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -26,7 +26,7 @@ except ImportError as e:
 @pytest.fixture(scope="function")
 def test_db() -> Generator:
     """Create a test database with all models registered.
-    
+
     Uses in-memory SQLite for fast, isolated testing.
     Each test gets a fresh database instance.
     """
@@ -34,27 +34,38 @@ def test_db() -> Generator:
         pytest.skip(SKIP_REASON)
 
     # Import all models to ensure they are registered with Base metadata
-    import app.models  # noqa: F401
+    # This must be done before creating tables
+    import app.models.file  # noqa: F401
+    import app.models.ingestion_run  # noqa: F401
 
-    # Use in-memory SQLite for testing with check_same_thread=False
+    # Create an in-memory SQLite database engine
     engine = create_engine(
         "sqlite:///:memory:",
         echo=False,
-        connect_args={"check_same_thread": False}
+        connect_args={
+            "check_same_thread": False,
+        },
+        poolclass=StaticPool,  # Use StaticPool to ensure same connection across threads
+        pool_pre_ping=True,
     )
-    Base.metadata.create_all(engine)
 
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
+
+    # Create a session factory
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     yield TestingSessionLocal
 
-    Base.metadata.drop_all(engine)
+    # Clean up
+    Base.metadata.drop_all(bind=engine)
+    engine.dispose()
 
 
 @pytest.fixture(scope="function")
 def test_storage() -> Generator:
     """Create a test storage backend using temporary directory.
-    
+
     Automatically cleaned up after test completes.
     """
     if not DEPENDENCIES_AVAILABLE:
@@ -66,14 +77,14 @@ def test_storage() -> Generator:
 
 
 @pytest.fixture(scope="function")
-def db_session(test_db) -> Generator[Session, None, None]:
+def db_session(test_db) -> Generator:
     """Provide a database session for tests.
-    
+
     Useful for tests that need direct database access without FastAPI.
     """
     if not DEPENDENCIES_AVAILABLE:
         pytest.skip(SKIP_REASON)
-    
+
     session = test_db()
     try:
         yield session
@@ -82,9 +93,9 @@ def db_session(test_db) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="function")
-def client(test_db, test_storage) -> Generator[TestClient, None, None]:
+def client(test_db, test_storage) -> Generator:
     """Create a FastAPI test client with overridden dependencies.
-    
+
     Database and storage backends are replaced with test versions.
     """
     if not DEPENDENCIES_AVAILABLE:
@@ -144,4 +155,3 @@ def sample_files() -> list[tuple[str, bytes]]:
         ("config2.tar.gz", b"Config file 2 content"),
         ("config3.tar.gz", b"Config file 3 content"),
     ]
-

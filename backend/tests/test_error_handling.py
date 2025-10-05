@@ -2,8 +2,6 @@
 
 import io
 
-import pytest
-
 
 class TestErrorHandling:
     """Tests for error handling and edge cases."""
@@ -13,7 +11,7 @@ class TestErrorHandling:
         response = client.post(
             "/v1/uploads",
             data=b"not json",
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         # FastAPI returns 422 for validation errors
         assert response.status_code in [400, 422]
@@ -34,7 +32,7 @@ class TestErrorHandling:
         response = client.get("/v1/runs?page=-1")
         # Should either reject or default to page 1
         assert response.status_code in [200, 422]
-        
+
         # Test invalid per_page
         response = client.get("/v1/runs?per_page=0")
         assert response.status_code in [200, 422]
@@ -48,7 +46,7 @@ class TestErrorHandling:
             data={
                 "type": "instance_etc",
                 "label": "Empty File Test",
-            }
+            },
         )
         # Should handle empty file gracefully (either accept or reject with proper status)
         assert response.status_code in [200, 201, 400, 422]
@@ -73,17 +71,14 @@ class TestErrorHandling:
             data={
                 "type": "invalid_type",
                 "label": "Invalid Type Test",
-            }
+            },
         )
         # Should return 422 for invalid enum value
         assert response.status_code == 422
 
     def test_upload_no_file_field(self, client):
         """Test upload request without file field."""
-        response = client.post(
-            "/v1/uploads",
-            data={"type": "ds_etc"}
-        )
+        response = client.post("/v1/uploads", data={"type": "ds_etc"})
         # Should return 422 for missing file
         assert response.status_code == 422
 
@@ -91,7 +86,7 @@ class TestErrorHandling:
         """Test that uploading multiple files in one request is handled."""
         file1 = io.BytesIO(b"content 1")
         file2 = io.BytesIO(b"content 2")
-        
+
         # FastAPI will only accept the first file when using File() without list
         response = client.post(
             "/v1/uploads",
@@ -99,9 +94,9 @@ class TestErrorHandling:
                 ("file", ("test1.tar.gz", file1, "application/gzip")),
                 ("file", ("test2.tar.gz", file2, "application/gzip")),
             ],
-            data={"type": "ds_etc"}
+            data={"type": "ds_etc"},
         )
-        
+
         # Should either process one file or reject the request
         # Most likely will process just the first file
         assert response.status_code in [201, 400, 422]
@@ -120,13 +115,17 @@ class TestErrorHandling:
             response = client.post(
                 "/v1/uploads",
                 files={"file": (filename, test_file, "application/gzip")},
-                data={"type": "ds_etc"}
+                data={"type": "ds_etc"},
             )
             # Reset file pointer for next iteration
             test_file.seek(0)
-            
+
             # Should handle gracefully (either accept or reject consistently)
-            assert response.status_code in [201, 400, 422], f"Failed for filename: {filename}"
+            assert response.status_code in [
+                201,
+                400,
+                422,
+            ], f"Failed for filename: {filename}"
 
     def test_upload_with_very_long_label(self, client):
         """Test upload with very long label (255+ chars)."""
@@ -139,7 +138,7 @@ class TestErrorHandling:
             data={
                 "type": "ds_etc",
                 "label": long_label,
-            }
+            },
         )
 
         # Should either truncate or reject
@@ -156,9 +155,8 @@ class TestErrorHandling:
             data={
                 "type": "ds_etc",
                 "notes": long_notes,
-            }
+            },
         )
 
         # Should handle large text field (TEXT type in DB should support this)
         assert response.status_code in [201, 400, 422, 500]
-

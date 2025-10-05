@@ -51,7 +51,7 @@ def validate_test_structure():
         for test_file in expected_files:
             file_path = test_dir / test_file
             if file_path.exists():
-                with open(file_path, 'r') as f:
+                with open(file_path) as f:
                     content = f.read()
                     # Basic checks
                     if "def test_" not in content and "class Test" not in content:
@@ -65,19 +65,19 @@ def validate_test_structure():
     print("\n" + "=" * 70)
     print("TEST STRUCTURE VALIDATION")
     print("=" * 70)
-    
+
     if successes:
         print("\nSUCCESSES:")
         for msg in successes:
             print(f"  {msg}")
-    
+
     if errors:
         print("\nERRORS:")
         for msg in errors:
             print(f"  ✗ {msg}")
         print("\n" + "=" * 70)
         return False
-    
+
     print("\n" + "=" * 70)
     print("✅ All test structure validations passed!")
     print("=" * 70)
@@ -88,25 +88,25 @@ def count_test_functions():
     """Count test functions in test files."""
     test_dir = Path(__file__).parent
     test_files = list(test_dir.glob("test_*.py"))
-    
+
     total_tests = 0
     file_counts = {}
-    
+
     for test_file in test_files:
-        with open(test_file, 'r') as f:
+        with open(test_file) as f:
             content = f.read()
             # Count test functions
             test_count = content.count("def test_")
             file_counts[test_file.name] = test_count
             total_tests += test_count
-    
+
     print("\n" + "=" * 70)
     print("TEST FUNCTION COUNT")
     print("=" * 70)
-    
+
     for filename, count in sorted(file_counts.items()):
         print(f"  {filename:30s} {count:3d} tests")
-    
+
     print("-" * 70)
     print(f"  {'TOTAL':30s} {total_tests:3d} tests")
     print("=" * 70)
@@ -114,10 +114,10 @@ def count_test_functions():
 
 if __name__ == "__main__":
     print("\n🔍 Validating test structure...\n")
-    
+
     success = validate_test_structure()
     count_test_functions()
-    
+
     if success:
         print("\n✨ Test structure is valid!")
         print("\nTo run tests:")

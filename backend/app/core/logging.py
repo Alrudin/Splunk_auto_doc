@@ -77,7 +77,7 @@ def setup_logging(log_level: str = "INFO", log_format: str = "text") -> None:
 
     # Set formatter based on format type
     if log_format.lower() == "json":
-        formatter = StructuredFormatter(datefmt="%Y-%m-%d %H:%M:%S")
+        formatter: logging.Formatter = StructuredFormatter(datefmt="%Y-%m-%d %H:%M:%S")
     else:
         # Human-readable text format
         formatter = logging.Formatter(

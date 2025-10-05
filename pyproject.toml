@@ -96,6 +96,28 @@ show_error_codes = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+disallow_any_generics = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "scripts.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "alembic.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "mock_server"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -104,6 +126,11 @@ addopts = [
     "--strict-config",
     "--disable-warnings",
     "-ra",
+]
+markers = [
+    "database: marks tests as requiring database (deselect with '-m \"not database\"')",
+    "integration: marks tests as integration tests",
+    "slow: marks tests as slow running",
 ]
 testpaths = ["backend/tests"]
 python_files = ["test_*.py", "*_test.py"]

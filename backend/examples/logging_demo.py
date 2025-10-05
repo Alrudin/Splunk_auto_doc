@@ -13,11 +13,11 @@ import logging
 import sys
 from pathlib import Path
 
+from app.core.logging import setup_logging
+
 # Add backend to path
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
-
-from app.core.logging import setup_logging
 
 
 def example_text_format():
@@ -38,13 +38,10 @@ def example_text_format():
             "upload_filename": "production_etc.tar.gz",
             "type": "instance_etc",
             "label": "Production Server Config",
-        }
+        },
     )
 
-    logger.info(
-        "Created ingestion run with status=pending",
-        extra={"run_id": 42}
-    )
+    logger.info("Created ingestion run with status=pending", extra={"run_id": 42})
 
     logger.info(
         "File processed",
@@ -53,17 +50,17 @@ def example_text_format():
             "upload_filename": "production_etc.tar.gz",
             "size_bytes": 1024000,
             "sha256": "abc123def456...",
-        }
+        },
     )
 
     logger.info(
         "Stored file in storage backend",
-        extra={"run_id": 42, "storage_key": "runs/42/production_etc.tar.gz"}
+        extra={"run_id": 42, "storage_key": "runs/42/production_etc.tar.gz"},
     )
 
     logger.info(
         "Successfully completed upload for run",
-        extra={"run_id": 42, "status": "stored"}
+        extra={"run_id": 42, "status": "stored"},
     )
 
 
@@ -85,7 +82,7 @@ def example_json_format():
             "method": "POST",
             "path": "/v1/uploads",
             "request_size": 1024000,
-        }
+        },
     )
 
     logger.info(
@@ -99,7 +96,7 @@ def example_json_format():
             "request_size": 1024000,
             "response_size": 256,
             "run_id": 42,
-        }
+        },
     )
 
 
@@ -120,7 +117,7 @@ def example_error_logging():
         logger.error(
             "Storage error during upload",
             extra={"run_id": 43, "error": "Simulated storage failure"},
-            exc_info=True
+            exc_info=True,
         )
 
 
@@ -141,17 +138,17 @@ def example_correlation_tracking():
 
     middleware_logger.info(
         "Request started: POST /v1/uploads",
-        extra={"request_id": request_id, "method": "POST", "path": "/v1/uploads"}
+        extra={"request_id": request_id, "method": "POST", "path": "/v1/uploads"},
     )
 
     uploads_logger.info(
         "Received upload request",
-        extra={"request_id": request_id, "upload_filename": "test.tar.gz"}
+        extra={"request_id": request_id, "upload_filename": "test.tar.gz"},
     )
 
     uploads_logger.info(
         "Created ingestion run with status=pending",
-        extra={"request_id": request_id, "run_id": 44}
+        extra={"request_id": request_id, "run_id": 44},
     )
 
     middleware_logger.info(
@@ -162,8 +159,8 @@ def example_correlation_tracking():
             "path": "/v1/uploads",
             "status_code": 201,
             "duration": 0.5,
-            "run_id": 44
-        }
+            "run_id": 44,
+        },
     )
 
     print(f"\n→ All entries share request_id='{request_id}' for traceability")
@@ -183,7 +180,8 @@ if __name__ == "__main__":
     print("\n" + "=" * 70)
     print("CONFIGURATION GUIDE")
     print("=" * 70)
-    print("""
+    print(
+        """
 In your .env file:
 
     # Human-readable format (development)
@@ -204,5 +202,6 @@ Benefits of text format:
 - Human-readable during development
 - Easy to read in terminal/console
 - Better for debugging and local testing
-    """)
+    """
+    )
     print("=" * 70 + "\n")

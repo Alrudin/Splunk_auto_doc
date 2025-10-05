@@ -31,9 +31,7 @@ class Settings(BaseSettings):
     storage_backend: Literal["local", "s3"] = Field(
         default="local", description="Storage backend type"
     )
-    storage_path: str = Field(
-        default="./storage", description="Local storage path"
-    )
+    storage_path: str = Field(default="./storage", description="Local storage path")
     s3_bucket: str = Field(default="", description="S3 bucket name")
     s3_endpoint_url: str = Field(default="", description="S3 endpoint URL (for MinIO)")
     aws_access_key_id: str = Field(default="", description="AWS access key ID")

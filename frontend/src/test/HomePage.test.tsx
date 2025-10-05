@@ -10,7 +10,7 @@ describe('HomePage', () => {
         <HomePage />
       </BrowserRouter>
     )
-    
+
     expect(screen.getByText('Welcome to Splunk Auto Doc')).toBeDefined()
   })
 
@@ -20,7 +20,7 @@ describe('HomePage', () => {
         <HomePage />
       </BrowserRouter>
     )
-    
+
     const uploadLink = screen.getByText('Upload Configuration')
     expect(uploadLink).toBeDefined()
     expect(uploadLink.closest('a')).toHaveProperty('href')
@@ -32,7 +32,7 @@ describe('HomePage', () => {
         <HomePage />
       </BrowserRouter>
     )
-    
+
     const viewRunsLink = screen.getByText('View Runs')
     expect(viewRunsLink).toBeDefined()
     expect(viewRunsLink.closest('a')).toHaveProperty('href')
@@ -44,7 +44,7 @@ describe('HomePage', () => {
         <HomePage />
       </BrowserRouter>
     )
-    
+
     expect(screen.getByText('Configuration Parsing')).toBeDefined()
     expect(screen.getByText('Serverclass Resolution')).toBeDefined()
     expect(screen.getByText('Data Flow Analysis')).toBeDefined()
@@ -59,7 +59,7 @@ describe('HomePage', () => {
         <HomePage />
       </BrowserRouter>
     )
-    
+
     expect(screen.getByText('Getting Started')).toBeDefined()
   })
 
@@ -69,7 +69,7 @@ describe('HomePage', () => {
         <HomePage />
       </BrowserRouter>
     )
-    
+
     // Check for feature card container
     const featureGrid = container.querySelector('.grid')
     expect(featureGrid).toBeDefined()
