@@ -172,8 +172,9 @@ class TestRequestLoggingMiddleware:
 
     def test_error_request_logging(self, client, caplog):
         """Test that failed requests log exceptions."""
-        with caplog.at_level(logging.ERROR), pytest.raises(
-            ValueError, match="Test error"
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(ValueError, match="Test error"),
         ):
             client.get("/error")
 
