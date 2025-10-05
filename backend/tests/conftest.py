@@ -13,7 +13,7 @@ try:
     from app.main import create_app
     from app.storage import get_storage_backend
     from fastapi.testclient import TestClient
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine  # , inspect
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.pool import StaticPool
 
@@ -35,6 +35,8 @@ def test_db() -> Generator:
 
     # Import all models to ensure they are registered with Base metadata
     # This must be done before creating tables
+    # Also import from __init__.py to ensure all models are loaded
+    import app.models  # noqa: F401
     import app.models.file  # noqa: F401
     import app.models.ingestion_run  # noqa: F401
 
