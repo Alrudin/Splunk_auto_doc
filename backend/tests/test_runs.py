@@ -5,6 +5,9 @@ import tempfile
 
 import pytest
 
+# Ensure all models are imported first
+import tests.ensure_models  # noqa: F401
+
 # Try to import dependencies, skip tests if not available
 try:
     from app.api.v1.uploads import get_storage
@@ -28,10 +31,12 @@ def test_db():
     if not DEPENDENCIES_AVAILABLE:
         pytest.skip(SKIP_REASON)
 
-    # Import all models to ensure they are registered with Base metadata
+    # Import models explicitly to ensure they are registered with Base metadata
+    # This MUST happen before create_all() is called
+    # Also import the models package to ensure __init__.py runs
     import app.models  # noqa: F401
-    import app.models.file  # noqa: F401
-    import app.models.ingestion_run  # noqa: F401
+    from app.models.file import File  # noqa: F401
+    from app.models.ingestion_run import IngestionRun  # noqa: F401
 
     # Use in-memory SQLite for testing with proper configuration
     from sqlalchemy.pool import StaticPool
@@ -43,7 +48,25 @@ def test_db():
         poolclass=StaticPool,
         pool_pre_ping=True,
     )
+
+    # Verify models are registered before creating tables
+    if not Base.metadata.tables:
+        raise RuntimeError(
+            "No tables found in Base.metadata - models not properly imported"
+        )
+
+    # Create tables
     Base.metadata.create_all(engine)
+
+    # Verify tables were actually created
+    from sqlalchemy import inspect
+
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    if "ingestion_runs" not in tables:
+        raise RuntimeError(
+            f"ingestion_runs table not created. Available tables: {tables}"
+        )
 
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -5,6 +5,9 @@ import tempfile
 
 import pytest
 
+# Ensure all models are imported first
+import tests.ensure_models  # noqa: F401
+
 # Try to import dependencies, skip tests if not available
 try:
     from app.api.v1.uploads import get_storage
@@ -16,6 +19,7 @@ try:
     from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
 
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
@@ -29,8 +33,34 @@ def test_db():
     if not DEPENDENCIES_AVAILABLE:
         pytest.skip(SKIP_REASON)
 
-    # Use in-memory SQLite for testing
-    engine = create_engine("sqlite:///:memory:", echo=False)
+    # Import models explicitly to ensure they are registered with Base metadata
+    # This MUST happen before create_all() is called
+    # Also import the models package to ensure __init__.py runs
+    import app.models  # noqa: F401
+    from app.models.file import File  # noqa: F401
+    from app.models.ingestion_run import IngestionRun  # noqa: F401
+
+    # Create an in-memory SQLite database engine with proper configuration
+    engine = create_engine(
+        "sqlite:///:memory:",
+        echo=False,
+        connect_args={
+            "check_same_thread": False,
+        },
+        poolclass=StaticPool,
+    )
+
+    # Verify models are in metadata before creating tables
+    registered_tables = list(Base.metadata.tables.keys())
+    if "ingestion_runs" not in registered_tables:
+        raise RuntimeError(
+            f"ingestion_runs table not registered. Available: {registered_tables}"
+        )
+    if "files" not in registered_tables:
+        raise RuntimeError(
+            f"files table not registered. Available: {registered_tables}"
+        )
+
     Base.metadata.create_all(engine)
 
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

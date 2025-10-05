@@ -6,6 +6,9 @@ from collections.abc import Generator
 
 import pytest
 
+# Ensure all models are imported first
+import tests.ensure_models  # noqa: F401
+
 # Try to import dependencies, skip tests if not available
 try:
     from app.api.v1.uploads import get_storage
@@ -13,7 +16,7 @@ try:
     from app.main import create_app
     from app.storage import get_storage_backend
     from fastapi.testclient import TestClient
-    from sqlalchemy import create_engine  # , inspect
+    from sqlalchemy import create_engine, inspect
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.pool import StaticPool
 
@@ -33,12 +36,12 @@ def test_db() -> Generator:
     if not DEPENDENCIES_AVAILABLE:
         pytest.skip(SKIP_REASON)
 
-    # Import all models to ensure they are registered with Base metadata
-    # This must be done before creating tables
-    # Also import from __init__.py to ensure all models are loaded
+    # Import models explicitly to ensure they are registered with Base metadata
+    # This MUST happen before create_all() is called
+    # Also import the models package to ensure __init__.py runs
     import app.models  # noqa: F401
-    import app.models.file  # noqa: F401
-    import app.models.ingestion_run  # noqa: F401
+    from app.models.file import File  # noqa: F401
+    from app.models.ingestion_run import IngestionRun  # noqa: F401
 
     # Create an in-memory SQLite database engine
     engine = create_engine(
@@ -51,8 +54,22 @@ def test_db() -> Generator:
         pool_pre_ping=True,
     )
 
+    # Verify models are registered before creating tables
+    if not Base.metadata.tables:
+        raise RuntimeError(
+            "No tables found in Base.metadata - models not properly imported"
+        )
+
     # Create all tables
     Base.metadata.create_all(bind=engine)
+
+    # Verify tables were actually created
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    if "ingestion_runs" not in tables:
+        raise RuntimeError(
+            f"ingestion_runs table not created. Available tables: {tables}"
+        )
 
     # Create a session factory
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
