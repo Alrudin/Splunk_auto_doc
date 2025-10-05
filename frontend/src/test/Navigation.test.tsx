@@ -55,10 +55,10 @@ describe('Navigation and Routing', () => {
     expect(links.length).toBeGreaterThan(0)
 
     // Check that some links point to expected routes
-    const linkHrefs = Array.from(links).map((link) => link.getAttribute('href'))
-    expect(linkHrefs.some((href) => href === '/')).toBe(true)
-    expect(linkHrefs.some((href) => href === '/upload')).toBe(true)
-    expect(linkHrefs.some((href) => href === '/runs')).toBe(true)
+    const linkHrefs = Array.from(links).map(link => link.getAttribute('href'))
+    expect(linkHrefs.some(href => href === '/')).toBe(true)
+    expect(linkHrefs.some(href => href === '/upload')).toBe(true)
+    expect(linkHrefs.some(href => href === '/runs')).toBe(true)
   })
 
   it('should integrate App component with router', () => {
