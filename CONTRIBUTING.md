@@ -40,6 +40,7 @@ This project follows strict coding standards to ensure consistency and maintaina
 
 ### Python Code Standards
 
+**Core Principles:**
 - **Follow PEP 8**: Use the official Python style guide
 - **Type Hints**: Always include type hints for function parameters and return values
 - **Documentation**: Write clear docstrings for all functions and classes
@@ -47,14 +48,86 @@ This project follows strict coding standards to ensure consistency and maintaina
 - **Indentation**: Use 4 spaces for each level of indentation
 - **Testing**: Create tests for all new code
 
+**Required Practices:**
+```python
+# ✅ Good: Type hints, docstring, descriptive names
+def create_ingestion_run(
+    file_path: str,
+    upload_type: str,
+    label: str | None = None
+) -> IngestionRun:
+    """Create a new ingestion run from an uploaded file.
+    
+    Args:
+        file_path: Path to the uploaded file
+        upload_type: Type of upload (ds_etc, instance_etc, etc.)
+        label: Optional human-readable label
+        
+    Returns:
+        IngestionRun: The created ingestion run
+        
+    Raises:
+        ValueError: If upload_type is invalid
+    """
+    # Implementation
+    pass
+
+# ❌ Bad: No types, no docstring, unclear names
+def create(f, t, l=None):
+    # Implementation
+    pass
+```
+
+**Documentation Requirements:**
+- All public functions and classes must have docstrings
+- Use Google-style docstrings (Args, Returns, Raises)
+- Include examples for complex functions
+- Keep comments up-to-date with code changes
+
 ### TypeScript/React Code Standards
 
+**Core Principles:**
 - **Follow ESLint rules**: The project uses TypeScript ESLint with React plugins
 - **Type Safety**: Always use TypeScript types, avoid `any` when possible
 - **Component Structure**: Use functional components with hooks
 - **Naming**: Use PascalCase for components, camelCase for functions/variables
 - **Indentation**: Use 2 spaces for each level of indentation
 - **Testing**: Write unit tests for components and utilities
+
+**Required Practices:**
+```typescript
+// ✅ Good: Explicit types, clear interface, proper naming
+interface UploadFormProps {
+  onUploadComplete: (runId: number) => void
+  allowedTypes: string[]
+}
+
+export const UploadForm: React.FC<UploadFormProps> = ({
+  onUploadComplete,
+  allowedTypes,
+}) => {
+  const [file, setFile] = useState<File | null>(null)
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    // Implementation
+  }
+  
+  return <form onSubmit={handleSubmit}>...</form>
+}
+
+// ❌ Bad: Any types, unclear interface, missing types
+export const UploadForm = ({ onUploadComplete, allowedTypes }: any) => {
+  const [file, setFile] = useState(null)
+  // Implementation
+}
+```
+
+**Component Organization:**
+- One component per file
+- Co-locate tests with components or in `test/` directory
+- Extract reusable logic into custom hooks
+- Use TypeScript interfaces for props and state
 
 ### Code Quality Tools
 
@@ -283,8 +356,95 @@ Types:
 
 - Check the [README.md](README.md) for setup instructions
 - Review the [milestone plans](notes/milestone-1-plan.md) for project direction
+- Review the [gap analysis](notes/milestone-1-gap-analysis.md) for current status
+- Check the [database schema](notes/database-schema.md) for data model questions
 - Open an issue for bugs or feature requests
 - Ask questions in pull request discussions
+
+## Submitting Issues
+
+When opening an issue, please:
+
+**For Bug Reports:**
+1. Use the bug report template if available
+2. Provide a clear, descriptive title
+3. Include steps to reproduce the issue
+4. Describe expected vs. actual behavior
+5. Include relevant logs, screenshots, or error messages
+6. Specify your environment (OS, Docker version, Python/Node version)
+
+**For Feature Requests:**
+1. Use the feature request template if available
+2. Clearly describe the proposed feature
+3. Explain the use case and benefits
+4. Consider potential implementation approaches
+5. Check if similar features are already planned in milestone docs
+
+**For Documentation Issues:**
+1. Identify which document needs updating
+2. Describe what's unclear or missing
+3. Suggest improvements if possible
+
+## Submitting Pull Requests
+
+**Before Submitting:**
+1. Check that your branch is up-to-date with `main`
+2. Run all quality checks locally: `pre-commit run --all-files`
+3. Ensure all tests pass: `make test`
+4. Update documentation if your changes affect usage or APIs
+5. Add tests for new functionality
+
+**PR Guidelines:**
+1. **Create a descriptive title** - Use conventional commit format:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation changes
+   - `refactor:` for code refactoring
+   - `test:` for test additions/changes
+   - `chore:` for maintenance tasks
+
+2. **Write a clear description**:
+   - Explain what changes were made and why
+   - Reference any related issues (e.g., "Fixes #123")
+   - Describe testing performed
+   - Note any breaking changes
+   - Include screenshots for UI changes
+
+3. **Keep PRs focused**:
+   - One logical change per PR
+   - Avoid mixing refactoring with new features
+   - Split large changes into smaller, reviewable PRs
+
+4. **Respond to feedback**:
+   - Address reviewer comments promptly
+   - Ask for clarification if feedback is unclear
+   - Mark conversations as resolved after addressing them
+
+**Example PR Description:**
+```markdown
+## Summary
+Adds pagination support to the runs listing endpoint.
+
+## Changes
+- Added `page` and `per_page` query parameters to GET /v1/runs
+- Updated response schema to include pagination metadata
+- Added tests for pagination edge cases
+- Updated API documentation with pagination examples
+
+## Testing
+- All existing tests pass
+- Added new tests for:
+  - Default pagination values
+  - Custom page sizes
+  - Out of range page numbers
+  - Empty result sets
+
+## Related Issues
+Closes #42
+
+## Screenshots
+N/A (backend only)
+```
 
 ## Code Review Process
 
