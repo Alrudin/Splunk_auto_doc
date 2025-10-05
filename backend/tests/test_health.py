@@ -1,7 +1,8 @@
 """Tests for health check endpoints."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from app.main import create_app
 from fastapi.testclient import TestClient
 
@@ -26,7 +27,7 @@ def test_health_check(client: TestClient) -> None:
 def test_readiness_check(client: TestClient) -> None:
     """Test readiness check endpoint."""
     # Mock the database engine to simulate a healthy database connection
-    with patch('app.health.engine') as mock_engine:
+    with patch("app.health.engine") as mock_engine:
         mock_connection = MagicMock()
         mock_engine.connect.return_value.__enter__.return_value = mock_connection
         mock_connection.execute.return_value = None
@@ -42,7 +43,7 @@ def test_readiness_check(client: TestClient) -> None:
 def test_readiness_check_database_failure(client: TestClient) -> None:
     """Test readiness check endpoint when database is unhealthy."""
     # Mock the database engine to simulate a database connection failure
-    with patch('app.health.engine') as mock_engine:
+    with patch("app.health.engine") as mock_engine:
         mock_engine.connect.side_effect = Exception("Database connection failed")
 
         response = client.get("/health/ready")
