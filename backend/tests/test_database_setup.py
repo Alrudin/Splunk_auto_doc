@@ -29,9 +29,9 @@ def test_models_are_registered():
     registered_tables = list(Base.metadata.tables.keys())
     print(f"Registered tables: {registered_tables}")
 
-    assert (
-        "ingestion_runs" in registered_tables
-    ), f"ingestion_runs not in {registered_tables}"
+    assert "ingestion_runs" in registered_tables, (
+        f"ingestion_runs not in {registered_tables}"
+    )
     assert "files" in registered_tables, f"files not in {registered_tables}"
 
 
@@ -51,9 +51,9 @@ def test_database_creation():
     # Verify models are in metadata before creating tables
     tables_before = list(Base.metadata.tables.keys())
     print(f"Tables in metadata before create_all: {tables_before}")
-    assert (
-        "ingestion_runs" in tables_before
-    ), f"ingestion_runs not in metadata: {tables_before}"
+    assert "ingestion_runs" in tables_before, (
+        f"ingestion_runs not in metadata: {tables_before}"
+    )
     assert "files" in tables_before, f"files not in metadata: {tables_before}"
 
     # Create all tables
@@ -64,9 +64,9 @@ def test_database_creation():
     actual_tables = inspector.get_table_names()
     print(f"Actual tables in database: {actual_tables}")
 
-    assert (
-        "ingestion_runs" in actual_tables
-    ), f"ingestion_runs table not created: {actual_tables}"
+    assert "ingestion_runs" in actual_tables, (
+        f"ingestion_runs table not created: {actual_tables}"
+    )
     assert "files" in actual_tables, f"files table not created: {actual_tables}"
 
     # Test that we can create a session and use the models
