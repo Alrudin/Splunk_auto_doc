@@ -1,9 +1,8 @@
 """Tests for database readiness functionality."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import create_app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -42,7 +41,7 @@ def test_readiness_check_legacy_endpoint(client_no_override: TestClient) -> None
     assert "status" in data
     assert "checks" in data
     assert "database" in data["checks"]
-    
+
     # Status should reflect database state
     if response.status_code == 200:
         assert data["status"] == "ready"
@@ -62,7 +61,7 @@ def test_readiness_check_v1_endpoint(client_no_override: TestClient) -> None:
     assert "checks" in data
     assert "database" in data["checks"]
     assert "timestamp" in data
-    
+
     # Status should reflect database state
     if response.status_code == 200:
         assert data["status"] == "ready"
@@ -75,33 +74,32 @@ def test_readiness_check_v1_endpoint(client_no_override: TestClient) -> None:
 def test_readiness_returns_503_when_db_unavailable(monkeypatch) -> None:
     """Test that readiness check returns 503 when database is unavailable."""
     # This test verifies the behavior when DB connection fails
-    from app.core.db import engine
     from sqlalchemy import create_engine
-    
+
     # Create a bad engine that will fail to connect
     bad_engine = create_engine("postgresql://invalid:invalid@localhost:9999/invalid")
-    
+
     # Temporarily replace the engine
-    import app.health
     import app.api.v1.health
-    
+    import app.health
+
     original_engine = app.health.engine
     original_v1_engine = app.api.v1.health.engine
-    
+
     try:
         app.health.engine = bad_engine
         app.api.v1.health.engine = bad_engine
-        
+
         app_test = create_app()
         client = TestClient(app_test)
-        
+
         # Test legacy endpoint
         response = client.get("/health/ready")
         assert response.status_code == 503
         data = response.json()
         assert data["status"] == "not ready"
         assert "unhealthy" in data["checks"]["database"]
-        
+
         # Test v1 endpoint
         response = client.get("/v1/ready")
         assert response.status_code == 503
