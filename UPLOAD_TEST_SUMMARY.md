@@ -184,7 +184,7 @@ backend/tests/
 
 - **Issue**: Expand Unit & Integration Testing for Upload Lifecycle
 - **Milestone**: Milestone 1 - Core Infrastructure & Upload Ingestion
-- **Documentation**: 
+- **Documentation**:
   - README.md (Testing section)
   - TESTING.md (Comprehensive testing guide)
   - milestone-1-gap-analysis.md (Updated to mark testing complete)

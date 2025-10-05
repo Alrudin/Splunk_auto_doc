@@ -394,7 +394,7 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
    ```bash
    # Fix automatically where possible
    ruff check backend/ --fix
-   
+
    # Check what needs manual fixing
    ruff check backend/
    ```
@@ -409,7 +409,7 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
    ```bash
    # Run mypy locally to see errors
    mypy backend/app/
-   
+
    # Common fixes:
    # - Add type hints to function parameters and return types
    # - Import types from typing module
@@ -420,10 +420,10 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
    ```bash
    # Run tests locally with verbose output
    pytest backend/tests/ -v
-   
+
    # Run specific failing test
    pytest backend/tests/test_file.py::test_name -v
-   
+
    # Run with coverage to identify untested code
    pytest backend/tests/ --cov=backend/app --cov-report=term
    ```
@@ -433,10 +433,10 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
 1. **ESLint errors**
    ```bash
    cd frontend
-   
+
    # Fix automatically where possible
    npm run lint -- --fix
-   
+
    # Check what needs manual fixing
    npm run lint
    ```
@@ -444,10 +444,10 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
 2. **Prettier format errors**
    ```bash
    cd frontend
-   
+
    # Format all frontend code
    npm run format
-   
+
    # Check formatting
    npm run format:check
    ```
@@ -455,10 +455,10 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
 3. **TypeScript build errors**
    ```bash
    cd frontend
-   
+
    # Run build to see type errors
    npm run build
-   
+
    # Common fixes:
    # - Add proper type annotations
    # - Fix import paths
@@ -468,13 +468,13 @@ Our CI/CD pipeline automatically runs quality checks on every push and pull requ
 4. **Vitest test failures**
    ```bash
    cd frontend
-   
+
    # Run tests locally
    npm run test
-   
+
    # Run specific test file
    npm run test -- src/test/ComponentName.test.tsx
-   
+
    # Run with UI for debugging
    npm run test:ui
    ```
@@ -844,3 +844,4 @@ For production deployments:
 ---
 
 **Current Status**: Milestone 1 - Project skeleton and upload ingestion foundation in progress.
+# Test commit capability

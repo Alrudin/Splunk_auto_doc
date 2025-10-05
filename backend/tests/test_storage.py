@@ -1,5 +1,6 @@
 """Tests for storage backend implementations."""
 
+import contextlib
 import io
 import os
 import tempfile
@@ -326,7 +327,7 @@ class TestStorageIntegration:
         try:
             local_backend.delete_blob("nonexistent_key.txt")
         except StorageError:
-            pass  # Expected behavior
+            contextlib.suppress(StorageError)  # Expected behavior
 
     def test_storage_key_with_nested_paths(self, local_backend):
         """Test storing blobs with deeply nested paths."""
@@ -354,4 +355,3 @@ class TestStorageIntegration:
 
         assert retrieved_content == content
         assert len(retrieved_content) == 256
-

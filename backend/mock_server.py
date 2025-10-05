@@ -3,10 +3,10 @@
 
 import json
 import logging
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse
 import sys
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Add the app to the path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -31,11 +31,11 @@ class MockAPIHandler(BaseHTTPRequestHandler):
         # Log the request
         logger.info(f"GET {path} - Mock API request")
 
-        if path == '/v1/health':
+        if path == "/v1/health":
             # V1 health endpoint
             response = {"status": "ok"}
             self.send_json_response(200, response)
-        elif path in ['/health/', '/health']:
+        elif path in ["/health/", "/health"]:
             # Legacy health endpoint
             response = {
                 "status": "healthy",
@@ -51,8 +51,8 @@ class MockAPIHandler(BaseHTTPRequestHandler):
     def send_json_response(self, status_code, data):
         """Send a JSON response."""
         self.send_response(status_code)
-        self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header("Content-type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
@@ -64,13 +64,13 @@ class MockAPIHandler(BaseHTTPRequestHandler):
 def main():
     """Run the mock server."""
     port = 8000
-    server_address = ('', port)
+    server_address = ("", port)
     httpd = HTTPServer(server_address, MockAPIHandler)
 
     logger.info(f"Starting mock Splunk Auto Doc API server on port {port}")
-    logger.info(f"Available endpoints:")
-    logger.info(f"  GET /v1/health -> {{\"status\": \"ok\"}}")
-    logger.info(f"  GET /health/   -> legacy health check")
+    logger.info("Available endpoints:")
+    logger.info('  GET /v1/health -> {"status": "ok"}')
+    logger.info("  GET /health/   -> legacy health check")
     logger.info(f"Access server at: http://localhost:{port}")
 
     try:

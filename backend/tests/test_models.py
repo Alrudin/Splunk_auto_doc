@@ -1,7 +1,8 @@
 """Tests for database models."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 
 # These tests will work once dependencies are installed
 # For now they serve as documentation of expected behavior
@@ -10,7 +11,7 @@ from datetime import datetime
 def test_ingestion_run_model():
     """Test IngestionRun model structure and relationships."""
     try:
-        from app.models import IngestionRun, IngestionType, IngestionStatus
+        from app.models import IngestionRun, IngestionStatus, IngestionType
 
         # Test enum values
         assert IngestionType.DS_ETC.value == "ds_etc"
@@ -61,7 +62,7 @@ def test_file_model():
 def test_model_relationships():
     """Test that model relationships are correctly defined."""
     try:
-        from app.models import IngestionRun, File
+        from app.models import File, IngestionRun
 
         # Check relationship names
         assert hasattr(IngestionRun, "files")
@@ -74,7 +75,7 @@ def test_model_relationships():
 def test_ingestion_run_repr():
     """Test IngestionRun string representation."""
     try:
-        from app.models import IngestionRun, IngestionType, IngestionStatus
+        from app.models import IngestionRun, IngestionStatus, IngestionType
 
         # Create a mock instance (not saved to DB)
         run = IngestionRun(

@@ -4,11 +4,10 @@ import json
 import logging
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
 from app.core.logging import StructuredFormatter, setup_logging
 from app.core.middleware import RequestLoggingMiddleware
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 
 class TestStructuredFormatter:
@@ -173,11 +172,21 @@ class TestRequestLoggingMiddleware:
 
     def test_error_request_logging(self, client, caplog):
         """Test that failed requests log exceptions."""
-        with caplog.at_level(logging.ERROR):
-            response = client.get("/error")
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(ValueError, match="Test error"),
+        ):
+            client.get("/error")
 
-        # FastAPI will return 500 for unhandled exceptions
-        assert response.status_code == 500
+        # Verify the middleware logged the error
+        error_logs = [
+            record for record in caplog.records if record.levelname == "ERROR"
+        ]
+        assert len(error_logs) > 0
+
+        # Check that our middleware logged the error
+        middleware_logs = [log for log in error_logs if "Request failed" in log.message]
+        assert len(middleware_logs) > 0
 
         # Check for error log with exception
         log_messages = [record.message for record in caplog.records]
@@ -212,7 +221,7 @@ class TestRequestLoggingMiddleware:
 
 def test_logging_configuration_import():
     """Test that logging modules can be imported."""
-    from app.core.logging import setup_logging, StructuredFormatter
+    from app.core.logging import StructuredFormatter, setup_logging
     from app.core.middleware import RequestLoggingMiddleware
 
     assert setup_logging is not None

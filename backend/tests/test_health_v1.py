@@ -1,6 +1,5 @@
 """Test for v1 health endpoint simulation."""
 
-import sys
 from pathlib import Path
 
 
@@ -14,6 +13,7 @@ def test_v1_health_endpoint_simulation():
     try:
         # Test the expected response format using our mock
         import asyncio
+
         result = asyncio.run(mock_health_check())
 
         # Test the expected response format
@@ -31,8 +31,10 @@ def test_v1_health_endpoint_simulation():
 
         # Check file content has the right structure
         content = health_file.read_text()
-        assert 'return {"status": "ok"}' in content, "Health endpoint should return correct format"
+        assert '"status": "ok"' in content, "Health endpoint should include status ok"
         assert "/health" in content, "Health endpoint should be defined"
+        assert "timestamp" in content, "Health endpoint should include timestamp"
+        assert "version" in content, "Health endpoint should include version"
         print("✅ v1 health endpoint file validation passed!")
 
     except Exception as e:

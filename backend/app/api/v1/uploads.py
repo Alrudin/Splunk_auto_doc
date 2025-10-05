@@ -201,13 +201,15 @@ async def upload_file(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to store file: {str(e)}",
-        )
+        ) from e
+
     except Exception as e:
         logger.error(
             "Unexpected error during upload",
             extra={"run_id": run.id, "error": str(e)},
             exc_info=True,
         )
+
         db.rollback()
 
         # Update run status to failed
@@ -222,4 +224,4 @@ async def upload_file(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process upload: {str(e)}",
-        )
+        ) from e

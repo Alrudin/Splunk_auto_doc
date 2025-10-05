@@ -61,26 +61,26 @@ The `conftest.py` file provides reusable test fixtures:
 def test_db():
     """In-memory SQLite database for isolated testing."""
     # Creates a fresh database for each test
-    
+
 @pytest.fixture
 def test_storage():
     """Temporary directory storage backend."""
     # Automatically cleaned up after test
-    
+
 @pytest.fixture
 def client(test_db, test_storage):
     """FastAPI TestClient with test dependencies."""
     # Database and storage overrides applied
-    
+
 @pytest.fixture
 def db_session(test_db):
     """Direct database session access."""
     # For tests that need raw DB access
-    
+
 @pytest.fixture
 def sample_tar_file():
     """Sample file for upload tests."""
-    
+
 @pytest.fixture
 def sample_upload_metadata():
     """Sample metadata for upload tests."""
@@ -198,11 +198,11 @@ def test_my_feature(client):
 def test_database_operation(db_session):
     """Test database operation."""
     from app.models import MyModel
-    
+
     obj = MyModel(name="test")
     db_session.add(obj)
     db_session.commit()
-    
+
     result = db_session.query(MyModel).filter_by(name="test").first()
     assert result is not None
     assert result.name == "test"
@@ -309,7 +309,7 @@ describe('API Client', () => {
       ok: true,
       json: async () => mockData
     })
-    
+
     const result = await apiClient.get('/endpoint')
     expect(result).toEqual(mockData)
   })

@@ -79,7 +79,7 @@ class LocalStorageBackend(StorageBackend):
             raise StorageError(f"Blob '{key}' is not a file")
 
         try:
-            return open(target_path, "rb")
+            return open(target_path, "rb")  # noqa: SIM115
         except OSError as e:
             raise StorageError(f"Failed to retrieve blob '{key}': {e}") from e
 

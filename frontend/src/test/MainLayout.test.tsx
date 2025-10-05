@@ -10,7 +10,7 @@ describe('MainLayout', () => {
         <MainLayout />
       </BrowserRouter>
     )
-    
+
     expect(screen.getByText('Splunk Auto Doc')).toBeDefined()
   })
 
@@ -20,12 +20,12 @@ describe('MainLayout', () => {
         <MainLayout />
       </BrowserRouter>
     )
-    
+
     // Check for main navigation links
     const homeLink = screen.getByText('Home')
     const uploadLink = screen.getByText('Upload')
     const runsLink = screen.getByText('Runs')
-    
+
     expect(homeLink).toBeDefined()
     expect(uploadLink).toBeDefined()
     expect(runsLink).toBeDefined()
@@ -37,10 +37,10 @@ describe('MainLayout', () => {
         <MainLayout />
       </BrowserRouter>
     )
-    
+
     const apiDocsLink = screen.getByText('API Docs')
     expect(apiDocsLink).toBeDefined()
-    
+
     // Check it's an external link
     const anchor = apiDocsLink.closest('a')
     expect(anchor).toBeDefined()
@@ -54,11 +54,11 @@ describe('MainLayout', () => {
         <MainLayout />
       </BrowserRouter>
     )
-    
+
     // Check for navbar
     const nav = container.querySelector('nav')
     expect(nav).toBeDefined()
-    
+
     // Check for main content area
     const main = container.querySelector('main')
     expect(main).toBeDefined()
@@ -70,7 +70,7 @@ describe('MainLayout', () => {
         <MainLayout />
       </BrowserRouter>
     )
-    
+
     // Check root div has min-h-screen class
     const rootDiv = container.firstChild as HTMLElement
     expect(rootDiv.className).toContain('min-h-screen')
@@ -82,11 +82,11 @@ describe('MainLayout', () => {
         <MainLayout />
       </BrowserRouter>
     )
-    
+
     // Check that navigation links are inside nav element
     const nav = container.querySelector('nav')
     expect(nav).toBeDefined()
-    
+
     const navLinks = nav?.querySelectorAll('a')
     expect(navLinks?.length).toBeGreaterThan(0)
   })

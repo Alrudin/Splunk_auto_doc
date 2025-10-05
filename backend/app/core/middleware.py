@@ -3,7 +3,7 @@
 import logging
 import time
 import uuid
-from typing import Callable
+from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -20,7 +20,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
 
     async def dispatch(
-        self, request: Request, call_next: Callable
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         """Process request and log details."""
         # Generate correlation ID for request tracing
@@ -47,7 +47,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Process request
         try:
             response = await call_next(request)
-        except Exception as exc:
+        except Exception:
             # Log exception with full traceback
             duration = time.time() - start_time
             logger.exception(
