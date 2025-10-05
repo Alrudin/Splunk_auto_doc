@@ -19,8 +19,6 @@ repos:
       - id: ruff
         args: [--fix]
         files: ^backend/
-      - id: ruff-format
-        files: ^backend/
 
   # Backend: Type checking (temporarily disabled)
   # - repo: https://github.com/pre-commit/mirrors-mypy
