@@ -43,7 +43,7 @@ def test_database_creation():
     # Create test database
     engine = create_engine(
         "sqlite:///:memory:",
-        echo=False,
+        echo=False,  # Set to True for SQL logging
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
