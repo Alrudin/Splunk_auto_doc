@@ -1151,6 +1151,8 @@ docker compose exec db psql -U splunk_user -d splunk_auto_doc
 
 ### Planning & Architecture
 
+- **[docs/adr/](docs/adr/)** - Architecture Decision Records (ADRs)
+  - **[ADR-001: Core Stack Selection](docs/adr/ADR-001-core-stack.md)** - Technology stack rationale
 - **[notes/milestone-1-plan.md](notes/milestone-1-plan.md)** - Milestone 1 objectives and scope
 - **[notes/milestone-1-gap-analysis.md](notes/milestone-1-gap-analysis.md)** - Progress tracking and gaps
 - **[notes/database-schema.md](notes/database-schema.md)** - Database schema documentation

@@ -37,7 +37,7 @@ Core backend deliverables for M1 are completed: infrastructure, backend skeleton
 | Testing (unit + integration upload lifecycle)                              |     Yes  | PRs #13, #21, This PR               | Comprehensive unit & integration tests for uploads, storage, error handling |
 | CI pipeline (lint, type, test)                                             |     Yes  | This PR                             | Robust CI workflows for backend and frontend with proper error gating      |
 | Documentation updates (README, CONTRIBUTING, curl examples)                |     Yes  | PRs #3, #13, This PR                | Architecture section, troubleshooting, comprehensive curl examples added    |
-| ADR(s) for core decisions                                                  |      No  | –                                  | ADR-001 (core stack) not yet added                                          |
+| ADR(s) for core decisions                                                  |     Yes  | This PR                            | ADR-001 (core stack) added to docs/adr/                                     |
 | Risk mitigations (DB readiness, streaming uploads)                         |   Partial| PR #9 (health checks), PR #19 (TBD) | Compose-level readiness present; streamed/chunked upload handling to verify |
 | Meta acceptance tracking issue                                             |      No  | –                                  | Tracking issue not yet opened                                               |
 | Environment helpers (.env.example, make targets)                           |     Yes  | PR #3, PR #9                        | Makefile and examples present                                               |
@@ -50,7 +50,7 @@ Core backend deliverables for M1 are completed: infrastructure, backend skeleton
 - ~~Add Test Suite (Unit & Integration; fixtures; coverage target)~~ ✅ Completed
 - ~~Set Up CI Workflow (ensure gating for lint, type, tests)~~ ✅ Completed
 - ~~Documentation & Contributor Guide Updates (README, architecture snapshot, curl examples)~~ ✅ Completed
-- Architecture Decision Record (ADR-001 Core Stack)
+- ~~Architecture Decision Record (ADR-001 Core Stack)~~ ✅ Completed
 - DB Readiness / Wait Strategy for Local & CI (beyond compose)
 - Streamed Upload & Memory Safety (chunked write + hashing)
 - Milestone 1 Completion Tracking (Meta issue)

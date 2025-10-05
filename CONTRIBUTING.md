@@ -355,6 +355,7 @@ Types:
 ## Getting Help
 
 - Check the [README.md](README.md) for setup instructions
+- Review the [Architecture Decision Records](docs/adr/) for technology choices and rationale
 - Review the [milestone plans](notes/milestone-1-plan.md) for project direction
 - Review the [gap analysis](notes/milestone-1-gap-analysis.md) for current status
 - Check the [database schema](notes/database-schema.md) for data model questions
