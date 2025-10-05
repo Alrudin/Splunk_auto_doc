@@ -214,7 +214,7 @@ async def upload_file(
 
         # Store file using storage backend (streams data, no full buffering)
         # Cast to BinaryIO since our wrapper implements the BinaryIO protocol
-        stored_key = storage.store_blob(cast(BinaryIO, stream_wrapper), storage_key)
+        stored_key = storage.store_blob(cast("BinaryIO", stream_wrapper), storage_key)
 
         # Get hash and size after streaming is complete
         sha256_hash = stream_wrapper.get_hash()
