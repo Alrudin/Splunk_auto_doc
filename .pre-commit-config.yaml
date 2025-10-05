@@ -57,16 +57,16 @@ repos:
         files: ^frontend/.*\.(ts|tsx)$
         stages: [pre-commit]
 
-  # # Frontend: Prettier
-  # - repo: local
-  #   hooks:
-  #     - id: prettier
-  #       name: prettier
-  #       entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run format:check; else echo Frontend dependencies not installed - skipping prettier; fi"'
-  #       language: system
-  #       pass_filenames: false
-  #       files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|md)$
-  #       stages: [pre-commit]
+  # Frontend: Prettier
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: 'bash -c "if [ -d frontend/node_modules ]; then cd frontend && npm run format:check; else echo Frontend dependencies not installed - skipping prettier; fi"'
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx|js|jsx|json|css|md)$
+        stages: [pre-commit]
 
   # Frontend: Testing
   - repo: local
