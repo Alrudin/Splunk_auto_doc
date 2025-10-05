@@ -31,10 +31,10 @@ check_postgres() {
 retry_count=0
 while [ $retry_count -lt $MAX_RETRIES ]; do
     retry_count=$((retry_count + 1))
-    
+
     if check_postgres; then
         echo "✅ PostgreSQL is ready! (attempt $retry_count/$MAX_RETRIES)"
-        
+
         # Additional verification: try to connect and run a simple query
         if PGPASSWORD="${DB_PASSWORD:-postgres}" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
             echo "✅ Database connection verified"
@@ -45,7 +45,7 @@ while [ $retry_count -lt $MAX_RETRIES ]; do
     else
         echo "⏳ Waiting for PostgreSQL... (attempt $retry_count/$MAX_RETRIES)"
     fi
-    
+
     if [ $retry_count -lt $MAX_RETRIES ]; then
         sleep $RETRY_INTERVAL
     fi

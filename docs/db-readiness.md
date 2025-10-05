@@ -103,10 +103,10 @@ services:
 steps:
   - name: Wait for PostgreSQL
     run: python backend/scripts/wait_for_db.py --max-retries 10 --retry-interval 3
-  
+
   - name: Run database migrations
     run: cd backend && alembic upgrade head
-  
+
   - name: Run tests
     run: pytest backend/tests/
 ```

@@ -1,8 +1,8 @@
 # ADR-001: Core Technology Stack Selection
 
-**Status:** Accepted  
-**Date:** 2025-01-XX  
-**Decision Makers:** @Alrudin, Development Team  
+**Status:** Accepted
+**Date:** 2025-01-XX
+**Decision Makers:** @Alrudin, Development Team
 **Related Documents:**
 - [Milestone 1 Plan](../../notes/milestone-1-plan.md)
 - [Milestone 1 Gap Analysis](../../notes/milestone-1-gap-analysis.md)
@@ -398,6 +398,6 @@ This decision establishes the foundational technology choices for Milestone 1 an
 
 ---
 
-**Supersedes:** None (initial ADR)  
-**Superseded by:** None (active)  
+**Supersedes:** None (initial ADR)
+**Superseded by:** None (active)
 **Last Reviewed:** 2025-01-XX

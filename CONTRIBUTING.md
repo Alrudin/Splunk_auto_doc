@@ -35,43 +35,43 @@ Thank you for your interest in contributing to Splunk Auto Doc! This document pr
    ```
 
 4. **Understanding Database Readiness**
-   
+
    The project implements a robust database readiness strategy to prevent race conditions. When developing locally or in CI:
-   
+
    **Docker Compose (Automatic):**
    ```bash
    # Database readiness is handled automatically
    docker compose up -d
-   
+
    # The API waits for the database before starting
    docker compose logs -f api
    ```
-   
+
    **Local Development (Manual):**
    ```bash
    # If running services separately, ensure database is ready first
    make wait-for-db
-   
+
    # Or use the Python script directly
    cd backend
    export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/splunk_auto_doc"
    python scripts/wait_for_db.py
-   
+
    # Then run migrations
    alembic upgrade head
-   
+
    # Finally start the API
    python -m app.main
    ```
-   
+
    **Readiness Checks:**
    ```bash
    # Check if the API and database are ready
    curl http://localhost:8000/health/ready
-   
+
    # Returns 200 OK if ready, 503 Service Unavailable if not
    ```
-   
+
    See the [Database Readiness Strategy](README.md#database-readiness-strategy) section in the README for complete documentation.
 
 ## Coding Standards
@@ -97,15 +97,15 @@ def create_ingestion_run(
     label: str | None = None
 ) -> IngestionRun:
     """Create a new ingestion run from an uploaded file.
-    
+
     Args:
         file_path: Path to the uploaded file
         upload_type: Type of upload (ds_etc, instance_etc, etc.)
         label: Optional human-readable label
-        
+
     Returns:
         IngestionRun: The created ingestion run
-        
+
     Raises:
         ValueError: If upload_type is invalid
     """
@@ -147,12 +147,12 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   allowedTypes,
 }) => {
   const [file, setFile] = useState<File | null>(null)
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // Implementation
   }
-  
+
   return <form onSubmit={handleSubmit}>...</form>
 }
 

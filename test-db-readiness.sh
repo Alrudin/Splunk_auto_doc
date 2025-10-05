@@ -90,14 +90,14 @@ if [ -f ".github/workflows/backend-ci.yml" ]; then
         echo "✗ CI workflow missing database wait step"
         exit 1
     fi
-    
+
     if grep -q "services:" .github/workflows/backend-ci.yml && grep -q "postgres:" .github/workflows/backend-ci.yml; then
         echo "✓ CI workflow includes PostgreSQL service"
     else
         echo "✗ CI workflow missing PostgreSQL service"
         exit 1
     fi
-    
+
     if grep -q "alembic upgrade head" .github/workflows/backend-ci.yml; then
         echo "✓ CI workflow runs migrations"
     else
@@ -131,7 +131,7 @@ echo ""
 echo "Test 7: Testing readiness test file..."
 if [ -f "backend/tests/test_db_readiness.py" ]; then
     echo "✓ DB readiness tests exist"
-    
+
     if grep -q "test_readiness_check" backend/tests/test_db_readiness.py; then
         echo "✓ Tests include readiness check tests"
     else
