@@ -1,20 +1,28 @@
 """S3-compatible storage backend implementation (MinIO)."""
 
 import io
-from typing import Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO
 
-try:
-    import boto3  # type: ignore[import-untyped]
-    from botocore.client import Config  # type: ignore[import-untyped]
-    from botocore.exceptions import (  # type: ignore[import-untyped]
+if TYPE_CHECKING:
+    import boto3
+    from botocore.client import Config
+    from botocore.exceptions import (
         BotoCoreError,
         ClientError,
     )
-except ImportError:
-    boto3 = None
-    Config = None
-    BotoCoreError = Exception
-    ClientError = Exception
+else:
+    try:
+        import boto3
+        from botocore.client import Config
+        from botocore.exceptions import (
+            BotoCoreError,
+            ClientError,
+        )
+    except ImportError:
+        boto3 = None  # type: ignore[assignment]
+        Config = None  # type: ignore[assignment,misc]
+        BotoCoreError = Exception  # type: ignore[assignment,misc]
+        ClientError = Exception  # type: ignore[assignment,misc]
 
 from app.storage.base import StorageBackend, StorageError
 
