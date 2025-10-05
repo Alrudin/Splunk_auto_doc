@@ -13,20 +13,28 @@ repos:
       - id: debug-statements
 
   # Backend: Python linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.8
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
 
-  # Backend: Type checking (temporarily disabled)
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.7.1
-  #   hooks:
-  #     - id: mypy
-  #       files: ^backend/
-  #       additional_dependencies:
-  #         - fastapi
-  #         - pydantic
-  #         - sqlalchemy
-  #         - sqlmodel
-  #         - types-psycopg2
-
+  # Backend: Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        files: ^backend/
+        additional_dependencies:
+          - fastapi
+          - pydantic
+          - sqlalchemy
+          - sqlmodel
+          - types-psycopg2
+          - boto3-stubs
 
   # Backend: Testing
   - repo: local

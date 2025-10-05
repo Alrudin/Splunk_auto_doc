@@ -3,7 +3,7 @@
 import hashlib
 import io
 import logging
-from typing import Annotated, BinaryIO
+from typing import Annotated, BinaryIO, cast
 
 from fastapi import (
     APIRouter,
@@ -52,15 +52,17 @@ class StreamingHashWrapper(io.BufferedIOBase):
         self.hasher = hashlib.sha256()
         self.bytes_read = 0
 
-    def read(self, size: int = -1) -> bytes:
+    def read(self, size: int | None = -1) -> bytes:
         """Read data from source, update hash, and return data.
 
         Args:
-            size: Number of bytes to read (-1 for all remaining)
+            size: Number of bytes to read (-1 or None for all remaining)
 
         Returns:
             bytes: Data read from source
         """
+        if size is None:
+            size = -1
         chunk = self.source.read(size)
         if chunk:
             self.hasher.update(chunk)
@@ -70,6 +72,15 @@ class StreamingHashWrapper(io.BufferedIOBase):
     def readable(self) -> bool:
         """Indicate this stream is readable."""
         return True
+
+    def close(self) -> None:
+        """Close the wrapper (no-op since we don't own the source)."""
+        pass
+
+    @property
+    def closed(self) -> bool:
+        """Return whether the stream is closed."""
+        return getattr(self.source, "closed", False)
 
     def get_hash(self) -> str:
         """Get the computed SHA256 hash.
@@ -202,7 +213,8 @@ async def upload_file(
         stream_wrapper = StreamingHashWrapper(file.file)
 
         # Store file using storage backend (streams data, no full buffering)
-        stored_key = storage.store_blob(stream_wrapper, storage_key)
+        # Cast to BinaryIO since our wrapper implements the BinaryIO protocol
+        stored_key = storage.store_blob(cast(BinaryIO, stream_wrapper), storage_key)
 
         # Get hash and size after streaming is complete
         sha256_hash = stream_wrapper.get_hash()

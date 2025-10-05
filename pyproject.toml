@@ -92,12 +92,26 @@ warn_unused_ignores = true
 warn_return_any = true
 strict_optional = true
 show_error_codes = true
+exclude = [
+    "backend/examples/.*",
+    "backend/scripts/.*",
+    "backend/alembic/.*",
+]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_any_generics = false
 disallow_incomplete_defs = false
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = "tests.test_schemas"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.test_upload_streaming"
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "examples.*"
