@@ -11,8 +11,8 @@ try:
         ClientError,
     )
 except ImportError:
-    boto3 = None  # type: ignore[assignment]
-    Config = None  # type: ignore[assignment, misc]
+    boto3 = None
+    Config = None
     BotoCoreError = Exception
     ClientError = Exception
 
