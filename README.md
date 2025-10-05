@@ -14,6 +14,62 @@ Key features:
 - **Interactive Visualization**: Provides web-based exploration of configuration relationships and data paths
 - **Version Tracking**: Maintains historical snapshots of configuration changes through ingestion runs
 
+## Architecture (Milestone 1)
+
+**Current Milestone Scope:**
+Milestone 1 establishes the foundation for configuration ingestion and storage. The architecture focuses on:
+
+1. **Upload Ingestion**: Accept and validate Splunk configuration archives (tar/zip)
+2. **Blob Storage**: Store raw configuration files in object storage (MinIO or local filesystem)
+3. **Metadata Tracking**: Record ingestion runs and file metadata in PostgreSQL
+4. **REST API**: Provide endpoints for upload, listing, and retrieval
+5. **Web Interface**: React-based UI for uploading files and viewing ingestion runs
+
+**Components:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Frontend (React)                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
+│  │ Upload Page  │  │  Runs Page   │  │  (Future: View)  │   │
+│  └──────────────┘  └──────────────┘  └──────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                            ↓ HTTP/JSON
+┌─────────────────────────────────────────────────────────────┐
+│                    FastAPI Backend (Python)                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  API Endpoints: /v1/uploads, /v1/runs, /v1/health   │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
+│  │   Service    │  │   Storage    │  │   Middleware   │    │
+│  │    Layer     │  │  Abstraction │  │   (Logging)    │    │
+│  └──────────────┘  └──────────────┘  └────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+            ↓                      ↓
+┌─────────────────────┐  ┌──────────────────────┐
+│   PostgreSQL        │  │  MinIO/Object Store  │
+│  (Metadata DB)      │  │  (File Blobs)        │
+│  - ingestion_runs   │  │  - .tar.gz archives  │
+│  - files            │  │                      │
+└─────────────────────┘  └──────────────────────┘
+```
+
+**Data Flow:**
+1. User uploads configuration archive via web UI
+2. API validates file and metadata
+3. File is streamed to object storage (SHA256 hash computed)
+4. Metadata is persisted to PostgreSQL (run and file records)
+5. API returns run ID and status to UI
+6. User can list and view ingestion runs
+
+**Future Milestones** will add:
+- Configuration parsing and normalization
+- Host and app resolution from serverclass configs
+- Data path computation and visualization
+- Background job processing with Celery
+
+See [`notes/milestone-1-plan.md`](notes/milestone-1-plan.md) for detailed milestone specifications.
+
 ## Stack
 
 ### Backend
@@ -677,16 +733,22 @@ git commit --no-verify -m "Emergency fix"
 The CI pipeline runs the same checks as pre-commit hooks plus additional integration tests. All checks must pass for PRs to be merged.
 
 
-### API Usage Example
+### API Usage Examples
 
+All API endpoints are documented interactively at http://localhost:8000/docs (OpenAPI/Swagger UI).
+
+**Health Check:**
 ```bash
-# Health check (v1 endpoint)
+# Health check endpoint
 curl http://localhost:8000/v1/health
 
-# Health check (legacy endpoint)
-curl http://localhost:8000/health/
+# Example response:
+# {"status":"ok","timestamp":"2025-01-15T10:30:45.123456Z","version":"1.0.0"}
+```
 
-# Upload Splunk configuration
+**Upload Splunk Configuration:**
+```bash
+# Upload with all metadata
 curl -X POST "http://localhost:8000/v1/uploads" \
      -F "file=@splunk_etc.tar.gz" \
      -F "type=ds_etc" \
@@ -698,8 +760,63 @@ curl -X POST "http://localhost:8000/v1/uploads" \
      -F "file=@my_app.tar.gz" \
      -F "type=app_bundle"
 
-# List ingestion runs (future milestone)
+# Example response:
+# {
+#   "run_id": 42,
+#   "status": "stored",
+#   "created_at": "2025-01-15T10:30:45.123456Z",
+#   "type": "ds_etc",
+#   "label": "Production Deployment Server",
+#   "notes": "Weekly configuration backup"
+# }
+```
+
+**Valid upload types:**
+- `ds_etc` - Deployment Server etc directory
+- `instance_etc` - Splunk instance etc directory
+- `app_bundle` - Splunk app bundle
+- `single_conf` - Single configuration file
+
+**List Ingestion Runs:**
+```bash
+# List all runs (default: page 1, 50 per page)
 curl http://localhost:8000/v1/runs
+
+# List with pagination
+curl "http://localhost:8000/v1/runs?page=1&per_page=20"
+
+# Example response:
+# {
+#   "runs": [
+#     {
+#       "id": 42,
+#       "created_at": "2025-01-15T10:30:45.123456Z",
+#       "type": "ds_etc",
+#       "label": "Production Deployment Server",
+#       "status": "stored",
+#       "notes": "Weekly configuration backup"
+#     }
+#   ],
+#   "total": 1,
+#   "page": 1,
+#   "per_page": 50
+# }
+```
+
+**Get Run Details:**
+```bash
+# Get details for a specific run
+curl http://localhost:8000/v1/runs/42
+
+# Example response:
+# {
+#   "id": 42,
+#   "created_at": "2025-01-15T10:30:45.123456Z",
+#   "type": "ds_etc",
+#   "label": "Production Deployment Server",
+#   "status": "stored",
+#   "notes": "Weekly configuration backup"
+# }
 ```
 
 ## Database Schema
@@ -841,7 +958,206 @@ For production deployments:
 3. **Forward logs** to centralized logging infrastructure
 4. **Monitor correlation IDs** to trace request flows across services
 
+## Troubleshooting
+
+### Common Setup Issues
+
+**Docker Compose fails to start:**
+```bash
+# Check if ports are already in use
+lsof -i :8000  # API port
+lsof -i :3000  # Frontend port
+lsof -i :5432  # PostgreSQL port
+lsof -i :9000  # MinIO port
+
+# Stop conflicting services or change ports in docker-compose.yml
+docker compose down
+docker compose up -d
+```
+
+**Database connection errors:**
+```bash
+# Ensure PostgreSQL container is healthy
+docker compose ps
+
+# Check database logs
+docker compose logs db
+
+# Wait for database to be ready before starting API
+# The health check in docker-compose.yml should handle this automatically
+```
+
+**MinIO/Storage errors:**
+```bash
+# Check MinIO is running
+docker compose ps minio
+
+# Verify storage configuration in .env
+cat .env | grep STORAGE
+
+# For local storage, ensure directory exists and has write permissions
+mkdir -p ./data/uploads
+chmod 755 ./data/uploads
+```
+
+**Frontend can't connect to API:**
+```bash
+# Verify API is running
+curl http://localhost:8000/v1/health
+
+# Check VITE_API_URL in frontend/.env
+cat frontend/.env
+
+# Ensure VITE_API_URL=http://localhost:8000 for local development
+```
+
+### Testing Issues
+
+**Backend tests fail:**
+```bash
+# Install all dependencies including dev requirements
+pip install -e ".[dev]"
+
+# Clear pytest cache
+rm -rf .pytest_cache
+rm -rf backend/.pytest_cache
+
+# Run with verbose output to see specific failures
+pytest backend/tests/ -vv
+
+# Run single test to isolate issue
+pytest backend/tests/test_uploads.py::test_upload_success -vv
+```
+
+**Frontend tests fail:**
+```bash
+# Reinstall node_modules
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+
+# Clear Vitest cache
+rm -rf node_modules/.vite
+
+# Run with UI for interactive debugging
+npm run test:ui
+```
+
+**Import errors in tests:**
+```bash
+# Ensure you're running from project root
+cd /path/to/Splunk_auto_doc
+
+# Backend: Install in editable mode
+pip install -e .
+
+# Frontend: Ensure proper module resolution
+cd frontend && npm run build
+```
+
+### CI/CD Issues
+
+**Pre-commit hooks fail:**
+```bash
+# Update pre-commit to latest version
+pre-commit autoupdate
+
+# Clear cache and reinstall
+pre-commit clean
+pre-commit install --install-hooks
+
+# Run manually to debug
+pre-commit run --all-files --verbose
+```
+
+**GitHub Actions CI fails:**
+
+1. **Check the specific failure** - Click on the failed check in PR to see logs
+2. **Reproduce locally** - Run the same commands from the CI workflow:
+   ```bash
+   # Backend CI steps
+   ruff check backend/
+   ruff format --check backend/
+   mypy backend/app/
+   pytest backend/tests/ --cov=backend/app
+
+   # Frontend CI steps
+   cd frontend
+   npm run lint
+   npm run format:check
+   npm run build
+   npm run test
+   ```
+3. **Fix the issue** - Address the specific error shown in logs
+4. **Push again** - CI will automatically re-run
+
+**Migration conflicts:**
+```bash
+# Check current migration state
+cd backend
+alembic current
+
+# View migration history
+alembic history
+
+# If migrations are out of sync, downgrade and re-apply
+alembic downgrade base
+alembic upgrade head
+```
+
+### Performance Issues
+
+**Slow uploads:**
+```bash
+# Check available disk space
+df -h
+
+# Monitor upload progress with verbose logging
+LOG_LEVEL=DEBUG docker compose logs -f api
+
+# For large files, ensure streaming is working (not loading into memory)
+# Check memory usage: docker stats
+```
+
+**Database query performance:**
+```bash
+# Connect to database and check slow queries
+docker compose exec db psql -U splunk_user -d splunk_auto_doc
+
+# In psql:
+# SELECT * FROM pg_stat_activity WHERE state = 'active';
+# EXPLAIN ANALYZE SELECT * FROM ingestion_runs ORDER BY created_at DESC LIMIT 50;
+```
+
+### Getting Additional Help
+
+- Check the [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
+- Review [milestone plans](notes/milestone-1-plan.md) for project architecture
+- Review [gap analysis](notes/milestone-1-gap-analysis.md) for known issues
+- Check [database schema docs](notes/database-schema.md) for data model questions
+- Open a GitHub issue with:
+  - Description of the problem
+  - Steps to reproduce
+  - Error messages and logs
+  - Your environment (OS, Docker version, Python version)
+
+## Project Documentation
+
+### Core Documentation Files
+
+- **[README.md](README.md)** - This file, project overview and quick start
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines and development workflow
+- **[TESTING.md](TESTING.md)** - Comprehensive testing documentation
+
+### Planning & Architecture
+
+- **[notes/milestone-1-plan.md](notes/milestone-1-plan.md)** - Milestone 1 objectives and scope
+- **[notes/milestone-1-gap-analysis.md](notes/milestone-1-gap-analysis.md)** - Progress tracking and gaps
+- **[notes/database-schema.md](notes/database-schema.md)** - Database schema documentation
+- **[notes/logging-implementation.md](notes/logging-implementation.md)** - Logging system details
+- **[notes/Project description.md](notes/Project%20description.md)** - Overall project vision and design
+- **[notes/github-instructions.md](notes/github-instructions.md)** - Coding standards reference
+
 ---
 
-**Current Status**: Milestone 1 - Project skeleton and upload ingestion foundation in progress.
-# Test commit capability
+**Current Status**: Milestone 1 - Project skeleton and upload ingestion foundation completed.
