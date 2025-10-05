@@ -199,7 +199,7 @@ class TestStreamingUpload:
 
     def test_upload_very_large_file_memory_safe(self, client):
         """Test that very large file (500MB) can be uploaded with streaming.
-        
+
         This test verifies memory safety by uploading a large file.
         The streaming implementation should not load the entire file into memory.
         """
@@ -212,9 +212,7 @@ class TestStreamingUpload:
 
         response = client.post(
             "/v1/uploads",
-            files={
-                "file": ("very_large_streaming.tar.gz", io.BytesIO(file_content))
-            },
+            files={"file": ("very_large_streaming.tar.gz", io.BytesIO(file_content))},
             data={"type": "ds_etc"},
         )
 

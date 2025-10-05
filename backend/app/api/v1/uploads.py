@@ -33,19 +33,18 @@ UPLOAD_CHUNK_SIZE = 8192
 
 
 class StreamingHashWrapper(io.BufferedIOBase):
-    """Wrapper that computes SHA256 hash while streaming data.
-    
+    """Wrapper that computes SHA256 hash while streaming data
     This wrapper allows us to:
     1. Stream file data without loading it all into memory
     2. Compute SHA256 hash incrementally as data passes through
     3. Count total bytes processed
-    
+
     Memory-safe for files of any size.
     """
 
     def __init__(self, source: BinaryIO):
         """Initialize the streaming hash wrapper.
-        
+
         Args:
             source: Source file-like object to read from
         """
@@ -55,10 +54,10 @@ class StreamingHashWrapper(io.BufferedIOBase):
 
     def read(self, size: int = -1) -> bytes:
         """Read data from source, update hash, and return data.
-        
+
         Args:
             size: Number of bytes to read (-1 for all remaining)
-            
+
         Returns:
             bytes: Data read from source
         """
@@ -74,7 +73,7 @@ class StreamingHashWrapper(io.BufferedIOBase):
 
     def get_hash(self) -> str:
         """Get the computed SHA256 hash.
-        
+
         Returns:
             str: Hexadecimal SHA256 hash
         """
@@ -82,7 +81,7 @@ class StreamingHashWrapper(io.BufferedIOBase):
 
     def get_size(self) -> int:
         """Get total bytes read.
-        
+
         Returns:
             int: Total bytes read from source
         """
@@ -198,13 +197,13 @@ async def upload_file(
         # This approach streams the file in chunks, computing hash as we go
         # Memory-safe for files of any size (no full file buffering)
         storage_key = f"runs/{run.id}/{file.filename}"
-        
+
         # Create streaming wrapper that computes hash during upload
         stream_wrapper = StreamingHashWrapper(file.file)
-        
+
         # Store file using storage backend (streams data, no full buffering)
         stored_key = storage.store_blob(stream_wrapper, storage_key)
-        
+
         # Get hash and size after streaming is complete
         sha256_hash = stream_wrapper.get_hash()
         file_size = stream_wrapper.get_size()
