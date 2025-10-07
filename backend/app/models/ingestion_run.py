@@ -11,6 +11,13 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.file import File
+    from app.models.index import Index
+    from app.models.input import Input
+    from app.models.output import Output
+    from app.models.props import Props
+    from app.models.serverclass import Serverclass
+    from app.models.stanza import Stanza
+    from app.models.transform import Transform
 
 
 class IngestionType(str, enum.Enum):
@@ -59,6 +66,27 @@ class IngestionRun(Base):
     # Relationships
     files: Mapped[list["File"]] = relationship(
         "File", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    stanzas: Mapped[list["Stanza"]] = relationship(
+        "Stanza", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    inputs: Mapped[list["Input"]] = relationship(
+        "Input", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    props: Mapped[list["Props"]] = relationship(
+        "Props", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    transforms: Mapped[list["Transform"]] = relationship(
+        "Transform", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    indexes: Mapped[list["Index"]] = relationship(
+        "Index", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    outputs: Mapped[list["Output"]] = relationship(
+        "Output", back_populates="ingestion_run", cascade="all, delete-orphan"
+    )
+    serverclasses: Mapped[list["Serverclass"]] = relationship(
+        "Serverclass", back_populates="ingestion_run", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

@@ -7,7 +7,17 @@ from alembic import context
 # Import the Base and all models
 from app.core.config import get_settings
 from app.core.db import Base
-from app.models import File, IngestionRun  # noqa: F401
+from app.models import (  # noqa: F401
+    File,
+    Index,
+    IngestionRun,
+    Input,
+    Output,
+    Props,
+    Serverclass,
+    Stanza,
+    Transform,
+)
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
