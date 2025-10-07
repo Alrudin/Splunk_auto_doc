@@ -9,6 +9,7 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.ingestion_run import IngestionRun
+    from app.models.stanza import Stanza
 
 
 class File(Base):
@@ -38,6 +39,9 @@ class File(Base):
     # Relationships
     ingestion_run: Mapped["IngestionRun"] = relationship(
         "IngestionRun", back_populates="files"
+    )
+    stanzas: Mapped[list["Stanza"]] = relationship(
+        "Stanza", back_populates="file", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

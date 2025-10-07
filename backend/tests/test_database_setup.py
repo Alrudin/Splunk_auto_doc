@@ -28,7 +28,6 @@ def test_models_are_registered():
     # Check that models are registered in Base metadata
     registered_tables = list(Base.metadata.tables.keys())
     print(f"Registered tables: {registered_tables}")
-
     assert "ingestion_runs" in registered_tables, (
         f"ingestion_runs not in {registered_tables}"
     )

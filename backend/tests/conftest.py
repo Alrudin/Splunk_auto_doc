@@ -41,7 +41,14 @@ def test_db() -> Generator:
     # Also import the models package to ensure __init__.py runs
     import app.models  # noqa: F401
     from app.models.file import File  # noqa: F401
+    from app.models.index import Index  # noqa: F401
     from app.models.ingestion_run import IngestionRun  # noqa: F401
+    from app.models.input import Input  # noqa: F401
+    from app.models.output import Output  # noqa: F401
+    from app.models.props import Props  # noqa: F401
+    from app.models.serverclass import Serverclass  # noqa: F401
+    from app.models.stanza import Stanza  # noqa: F401
+    from app.models.transform import Transform  # noqa: F401
 
     # Create an in-memory SQLite database engine
     engine = create_engine(
