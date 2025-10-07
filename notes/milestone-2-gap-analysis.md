@@ -23,33 +23,33 @@ Milestone 2 focuses on:
 - Background job to parse and persist results
 - Minimal API + UI for triggering and viewing parsed counts
 
-Current state: Planning initiated. Issues for M2 work to be opened from “Recommended New/Remaining Issues.”
+Current state: Planning initiated. Issues for M2 work are being opened from “Recommended New/Remaining Issues.”
 
 ---
 
 ## Plan Sections vs Tracking Status
 
-| Plan Element / Deliverable                                                    | Present? | Covered By                 | Gap / Notes                                                                 |
-|-------------------------------------------------------------------------------|:--------:|----------------------------|------------------------------------------------------------------------------|
-| Schema migrations: `stanzas` + typed tables + indexes                         |   No     | –                          | Alembic migration(s) required (IDs 002/003 suggested)                        |
-| Parser core: files → ordered stanzas (comments, continuation, repeats)        |   No     | –                          | Implement tokenizer/assembler + comprehensive unit tests                     |
-| Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   No     | –                          | Map stanzas to typed rows; validate Splunk-specific rules                    |
-| Normalization pipeline: unpack → walk → parse → bulk insert                   |   No     | –                          | Service orchestration, provenance, performance via bulk insert               |
-| Background worker: Redis + Celery/RQ, parse task with retries                 |   No     | –                          | Worker service + task wiring + observability                                 |
-| Run status lifecycle: stored → parsing → normalized → complete/failed         |   No     | –                          | Extend enums/values and transitions; persist summary counts                  |
-| API: trigger parse, status, summary, typed listings                           |   No     | –                          | Endpoints: POST /runs/{id}/parse, GET /parse-status, GET /summary, listings  |
-| Frontend: Run detail “Parse” button, status polling, counts panel             |   No     | –                          | Minimal UI to monitor and inspect parsed artifacts                           |
-| Observability: structured logs, metrics, extraction guardrails                |   No     | –                          | Time metrics, per-file progress logs; safety checks for zip/tar              |
-| Fixtures & tests: golden fixtures, property tests, integration                |   No     | –                          | Add curated etc/ samples + property tests (order, last-wins)                 |
-| CI pipeline updates: parser/unit/property/integration                         |   No     | –                          | Add jobs; optional performance smoke                                         |
-| Documentation: parser spec, normalization model, ADR-002                      |   No     | –                          | Docs for grammar/ERD; ADR capturing parser approach                          |
+| Plan Element / Deliverable                                                    | Present? | Covered By                        | Gap / Notes                                                                 |
+|-------------------------------------------------------------------------------|:--------:|-----------------------------------|------------------------------------------------------------------------------|
+| Schema migrations: `stanzas` + typed tables + indexes                         |   No     | Issue #50                         | Alembic migration(s) to add tables and indexes; PR pending                  |
+| Parser core: files → ordered stanzas (comments, continuation, repeats)        |   No     | –                                 | Implement tokenizer/assembler + comprehensive unit tests                     |
+| Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   No     | –                                 | Map stanzas to typed rows; validate Splunk-specific rules                    |
+| Normalization pipeline: unpack → walk → parse → bulk insert                   |   No     | –                                 | Service orchestration, provenance, performance via bulk insert               |
+| Background worker: Redis + Celery/RQ, parse task with retries                 |   No     | –                                 | Worker service + task wiring + observability                                 |
+| Run status lifecycle: stored → parsing → normalized → complete/failed         |   No     | –                                 | Extend enums/values and transitions; persist summary counts                  |
+| API: trigger parse, status, summary, typed listings                           |   No     | –                                 | Endpoints: POST /runs/{id}/parse, GET /parse-status, GET /summary, listings  |
+| Frontend: Run detail “Parse” button, status polling, counts panel             |   No     | –                                 | Minimal UI to monitor and inspect parsed artifacts                           |
+| Observability: structured logs, metrics, extraction guardrails                |   No     | –                                 | Time metrics, per-file progress logs; safety checks for zip/tar              |
+| Fixtures & tests: golden fixtures, property tests, integration                |   No     | –                                 | Add curated etc/ samples + property tests (order, last-wins)                 |
+| CI pipeline updates: parser/unit/property/integration                         |   No     | –                                 | Add jobs; optional performance smoke                                         |
+| Documentation: parser spec, normalization model, ADR-002                      |   No     | –                                 | Docs for grammar/ERD; ADR capturing parser approach                          |
 
 ---
 
 ## Recommended New/Remaining Issues (M2)
 
 - Milestone 2 Meta Tracking Issue (Parser & Normalization)
-- Alembic: Add `stanzas` and typed tables (`inputs`, `props`, `transforms`, `indexes`, `outputs`, `serverclasses`) + indexes
+- Alembic: Add `stanzas` and typed tables (`inputs`, `props`, `transforms`, `indexes`, `outputs`, `serverclasses`) + indexes (Issue #50)
 - Parser core: robust `.conf` parser (comments, line continuations, ordered keys, repeated keys)
 - Typed projection mappers for inputs/props/transforms/indexes/outputs/serverclasses
 - Normalization pipeline: unpack → parse → bulk insert with provenance and counts
@@ -90,15 +90,17 @@ Current state: Planning initiated. Issues for M2 work to be opened from “Recom
 
 ---
 
-## Status Rollup (initial)
+## Status Rollup (latest)
 
 - Planning: In progress
 - Implementation: Not started
-- Issues/PRs: To be created
+- Issues/PRs:
+  - Issues opened: #50
+  - Pull requests: none reported in latest retrieval
 - Blockers: None identified
 
 ---
 
 ## Update Log
 
-- 2025-10-07: Initial gap analysis scaffold created for M2.
+- 2025-10-07: Linked Issue #50 for schema migrations; no open pull requests reported in latest retrieval.
