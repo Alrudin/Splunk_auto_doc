@@ -48,6 +48,4 @@ class Serverclass(Base):
 
     def __repr__(self) -> str:
         """String representation of Serverclass."""
-        return (
-            f"<Serverclass(id={self.id}, run_id={self.run_id}, " f"name={self.name})>"
-        )
+        return f"<Serverclass(id={self.id}, run_id={self.run_id}, name={self.name})>"

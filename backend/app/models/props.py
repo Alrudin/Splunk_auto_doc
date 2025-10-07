@@ -49,4 +49,4 @@ class Props(Base):
 
     def __repr__(self) -> str:
         """String representation of Props."""
-        return f"<Props(id={self.id}, run_id={self.run_id}, " f"target={self.target})>"
+        return f"<Props(id={self.id}, run_id={self.run_id}, target={self.target})>"
