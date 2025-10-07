@@ -160,7 +160,7 @@ All relationships use `cascade="all, delete-orphan"` for automatic cleanup.
 ### ✅ Model Registration
 
 ```
-✓ Models successfully registered: ['files', 'indexes', 'ingestion_runs', 
+✓ Models successfully registered: ['files', 'indexes', 'ingestion_runs',
    'inputs', 'outputs', 'props', 'serverclasses', 'stanzas', 'transforms']
 ```
 

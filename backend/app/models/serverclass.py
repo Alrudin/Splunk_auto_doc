@@ -3,10 +3,10 @@
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
+from app.core.types import JSONB
 
 if TYPE_CHECKING:
     from app.models.ingestion_run import IngestionRun
@@ -49,6 +49,5 @@ class Serverclass(Base):
     def __repr__(self) -> str:
         """String representation of Serverclass."""
         return (
-            f"<Serverclass(id={self.id}, run_id={self.run_id}, "
-            f"name={self.name})>"
+            f"<Serverclass(id={self.id}, run_id={self.run_id}, " f"name={self.name})>"
         )

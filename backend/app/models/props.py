@@ -3,10 +3,10 @@
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
+from app.core.types import ARRAY, JSONB
 
 if TYPE_CHECKING:
     from app.models.ingestion_run import IngestionRun
@@ -49,7 +49,4 @@ class Props(Base):
 
     def __repr__(self) -> str:
         """String representation of Props."""
-        return (
-            f"<Props(id={self.id}, run_id={self.run_id}, "
-            f"target={self.target})>"
-        )
+        return f"<Props(id={self.id}, run_id={self.run_id}, " f"target={self.target})>"

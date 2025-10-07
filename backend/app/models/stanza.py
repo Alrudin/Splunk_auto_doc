@@ -1,12 +1,12 @@
-"""Stanza model for storing parsed configuration stanzas."""
+"""Stanza model for normalized Splunk configuration stanzas."""
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
+from app.core.types import JSONB
 
 if TYPE_CHECKING:
     from app.models.file import File

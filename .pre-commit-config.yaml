@@ -29,6 +29,7 @@ repos:
       - id: mypy
         files: ^backend/
         additional_dependencies:
+          - alembic
           - fastapi
           - pydantic
           - sqlalchemy
