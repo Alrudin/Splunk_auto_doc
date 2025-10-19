@@ -1,6 +1,6 @@
 # Milestone 2 Gap Analysis & Issue Mapping
 
-Date: 2025-10-07 (status update: 2025-10-07)
+Date: 2025-10-07 (status update: 2025-10-19)
 Author: @Alrudin (compiled with Copilot assistant)
 
 ## Purpose
@@ -31,7 +31,7 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 
 | Plan Element / Deliverable                                                    | Present? | Covered By                        | Gap / Notes                                                                 |
 |-------------------------------------------------------------------------------|:--------:|-----------------------------------|------------------------------------------------------------------------------|
-| Schema migrations: `stanzas` + typed tables + indexes                         |   No     | Issue #50                         | Alembic migration(s) to add tables and indexes; PR pending                  |
+| Schema migrations: `stanzas` + typed tables + indexes                         |   Yes    | Issue #50 (closed, completed)     | Delivered via Alembic migrations (002/003). Docs updated; unblock downstream |
 | Parser core: files → ordered stanzas (comments, continuation, repeats)        |   No     | –                                 | Implement tokenizer/assembler + comprehensive unit tests                     |
 | Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   No     | –                                 | Map stanzas to typed rows; validate Splunk-specific rules                    |
 | Normalization pipeline: unpack → walk → parse → bulk insert                   |   No     | –                                 | Service orchestration, provenance, performance via bulk insert               |
@@ -49,7 +49,6 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 ## Recommended New/Remaining Issues (M2)
 
 - Milestone 2 Meta Tracking Issue (Parser & Normalization)
-- Alembic: Add `stanzas` and typed tables (`inputs`, `props`, `transforms`, `indexes`, `outputs`, `serverclasses`) + indexes (Issue #50)
 - Parser core: robust `.conf` parser (comments, line continuations, ordered keys, repeated keys)
 - Typed projection mappers for inputs/props/transforms/indexes/outputs/serverclasses
 - Normalization pipeline: unpack → parse → bulk insert with provenance and counts
@@ -60,6 +59,8 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 - Fixtures and tests: golden fixtures; property tests; end-to-end integration (upload → parse → assert DB)
 - CI updates: add parser/test jobs; optional performance smoke
 - Documentation: `docs/parser-spec.md`, `docs/normalization-model.md`, ADR-002 (parser approach & trade-offs)
+
+Note: The Alembic migration work for schema migrations is complete via Issue #50 (closed) and removed from the remaining issues list.
 
 ---
 
@@ -93,9 +94,9 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 ## Status Rollup (latest)
 
 - Planning: In progress
-- Implementation: Not started
+- Implementation: Started (schema migrations complete)
 - Issues/PRs:
-  - Issues opened: #50
+  - Issues closed: #50
   - Pull requests: none reported in latest retrieval
 - Blockers: None identified
 
@@ -103,4 +104,5 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 
 ## Update Log
 
+- 2025-10-19: Marked schema migrations as Present=Yes and noted Issue #50 closed/completed.
 - 2025-10-07: Linked Issue #50 for schema migrations; no open pull requests reported in latest retrieval.
