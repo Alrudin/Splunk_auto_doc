@@ -7,7 +7,7 @@ from typing import Any
 @dataclass
 class Provenance:
     """Provenance metadata for a parsed stanza.
-    
+
     Tracks the source location and context of a configuration stanza,
     enabling accurate precedence resolution and debugging.
     """
@@ -31,7 +31,7 @@ class Provenance:
 @dataclass
 class ParsedStanza:
     """Represents a single parsed stanza from a .conf file.
-    
+
     A stanza consists of a header (in square brackets) followed by
     key-value pairs. This class preserves order and handles repeated keys.
     """
@@ -53,7 +53,7 @@ class ParsedStanza:
 
     def add_key(self, key: str, value: Any) -> None:
         """Add a key-value pair, handling repeats with last-wins semantics.
-        
+
         Args:
             key: Configuration key
             value: Configuration value

@@ -6,8 +6,7 @@ from pathlib import Path
 # Add backend to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.parser import ConfParser, ParserError
-from app.parser.types import ParsedStanza, Provenance
+from app.parser import ConfParser
 
 
 class TestBasicParsing:
@@ -59,7 +58,7 @@ key3 = value3
         """Test handling of whitespace around stanza headers and keys."""
         content = """
 [ test_stanza ]
-  key1  =  value1  
+  key1  =  value1
 key2=value2
 """
         parser = ConfParser()
@@ -320,7 +319,7 @@ regex = ^(?P<field>[^=]+)=(?P<value>.*)$
         """Test keys with empty values."""
         content = """
 [test_stanza]
-key1 = 
+key1 =
 key2 =
 """
         parser = ConfParser()

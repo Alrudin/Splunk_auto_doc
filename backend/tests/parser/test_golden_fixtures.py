@@ -55,9 +55,7 @@ class TestGoldenFixtures:
         assert "multiple lines" in script_stanzas[0].keys["description"]
 
         # Check last-wins for repeated key
-        debug_stanzas = [
-            s for s in stanzas if "debug.log" in s.name
-        ]
+        debug_stanzas = [s for s in stanzas if "debug.log" in s.name]
         assert len(debug_stanzas) >= 1
         # Final index should be "debug" due to last-wins
         assert debug_stanzas[0].keys["index"] == "debug"
@@ -118,7 +116,9 @@ class TestGoldenFixtures:
 
         # Last one should override
         last_route = route_stanzas[-1]
-        assert "CRITICAL" in last_route.keys.get("REGEX", "") or "ERROR" in last_route.keys.get("REGEX", "")
+        assert "CRITICAL" in last_route.keys.get(
+            "REGEX", ""
+        ) or "ERROR" in last_route.keys.get("REGEX", "")
 
         # Check DEST_KEY patterns
         for stanza in stanzas:
@@ -175,12 +175,12 @@ class TestGoldenFixtures:
         assert len(prod_stanzas) >= 1
         prod = prod_stanzas[0]
         assert "whitelist.0" in prod.keys
-        assert "prod-hf-*" in prod.keys["whitelist.0"] or "prod-uf-*" in prod.keys.get("whitelist.1", "")
+        assert "prod-hf-*" in prod.keys["whitelist.0"] or "prod-uf-*" in prod.keys.get(
+            "whitelist.1", ""
+        )
 
         # Check app assignments
-        app_stanzas = [
-            s for s in stanzas if ":app:" in s.name
-        ]
+        app_stanzas = [s for s in stanzas if ":app:" in s.name]
         assert len(app_stanzas) > 0
 
         # Check repeated whitelist (last-wins)

@@ -15,7 +15,7 @@ from app.parser.types import ParsedStanza, Provenance
 
 class ConfParser:
     """Parser for Splunk .conf configuration files.
-    
+
     Handles:
     - Comments (lines starting with #)
     - Line continuations (trailing backslash)
@@ -23,7 +23,7 @@ class ConfParser:
     - Stanza ordering
     - Provenance metadata extraction
     - Whitespace normalization
-    
+
     Example:
         parser = ConfParser()
         stanzas = parser.parse_file("/path/to/inputs.conf")
@@ -52,13 +52,13 @@ class ConfParser:
 
     def parse_file(self, file_path: str | Path) -> list[ParsedStanza]:
         """Parse a Splunk .conf file and return ordered stanzas.
-        
+
         Args:
             file_path: Path to the .conf file
-            
+
         Returns:
             List of parsed stanzas in file order
-            
+
         Raises:
             ParserError: If the file cannot be parsed
         """
@@ -68,23 +68,23 @@ class ConfParser:
 
         provenance = self._extract_provenance(str(file_path))
 
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return self._parse_stream(f, provenance)
 
     def parse_string(
         self, content: str, source_path: str = "<string>"
     ) -> list[ParsedStanza]:
         """Parse .conf content from a string.
-        
+
         Args:
             content: Configuration file content
             source_path: Optional path for provenance (default: "<string>")
-            
+
         Returns:
             List of parsed stanzas in order
         """
         provenance = self._extract_provenance(source_path)
-        lines = content.splitlines(keepends=True)
+        # lines = content.splitlines(keepends=True)
 
         # Create a file-like object from the lines
         from io import StringIO
@@ -96,11 +96,11 @@ class ConfParser:
         self, stream: TextIO, provenance: Provenance
     ) -> list[ParsedStanza]:
         """Parse a text stream into stanzas.
-        
+
         Args:
             stream: Text stream to parse
             provenance: Source metadata
-            
+
         Returns:
             List of parsed stanzas
         """
@@ -136,7 +136,7 @@ class ConfParser:
 
     def _process_line(self, line: str, provenance: Provenance) -> None:
         """Process a single logical line (after continuation handling).
-        
+
         Args:
             line: The line to process
             provenance: Source metadata
@@ -198,10 +198,10 @@ class ConfParser:
 
     def _remove_inline_comment(self, value: str) -> str:
         """Remove inline comments from a value, preserving # in quotes.
-        
+
         Args:
             value: The value to process
-            
+
         Returns:
             Value with inline comment removed
         """
@@ -218,14 +218,14 @@ class ConfParser:
 
     def _extract_provenance(self, file_path: str) -> Provenance:
         """Extract provenance metadata from file path.
-        
+
         Splunk config paths follow conventions like:
         - /opt/splunk/etc/apps/<app>/(default|local)/<conf>.conf
         - /opt/splunk/etc/system/(default|local)/<conf>.conf
-        
+
         Args:
             file_path: Full path to the config file
-            
+
         Returns:
             Provenance object with extracted metadata
         """

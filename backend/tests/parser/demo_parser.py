@@ -88,14 +88,14 @@ index = production
 
     stanza = stanzas[0]
     print(f"\n[{stanza.name}]")
-    print(f"\nCurrent value (last-wins):")
+    print("\nCurrent value (last-wins):")
     print(f"  index = {stanza.keys['index']}")
 
-    print(f"\nComplete history:")
+    print("\nComplete history:")
     for i, value in enumerate(stanza.key_history["index"], 1):
         print(f"  {i}. {value}")
 
-    print(f"\nKey order (including repeats):")
+    print("\nKey order (including repeats):")
     print(f"  {stanza.key_order}")
 
 
@@ -130,9 +130,7 @@ def demo_real_world_fixture():
     print("DEMO 5: Real-World Configuration")
     print("=" * 70)
 
-    fixture_path = (
-        Path(__file__).parent / "fixtures" / "hf_inputs.conf"
-    )
+    fixture_path = Path(__file__).parent / "fixtures" / "hf_inputs.conf"
 
     if not fixture_path.exists():
         print(f"\nFixture not found: {fixture_path}")
