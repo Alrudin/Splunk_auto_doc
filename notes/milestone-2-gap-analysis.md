@@ -32,7 +32,7 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 | Plan Element / Deliverable                                                    | Present? | Covered By                        | Gap / Notes                                                                 |
 |-------------------------------------------------------------------------------|:--------:|-----------------------------------|------------------------------------------------------------------------------|
 | Schema migrations: `stanzas` + typed tables + indexes                         |   Yes    | Issue #50 (closed, completed)     | Delivered via Alembic migrations (002/003). Docs updated; unblock downstream |
-| Parser core: files → ordered stanzas (comments, continuation, repeats)        |   No     | –                                 | Implement tokenizer/assembler + comprehensive unit tests                     |
+| Parser core: files → ordered stanzas (comments, continuation, repeats)        |   Yes    | Issue #52 (this PR, completed)    | Tokenizer/assembler + comprehensive unit tests delivered                     |
 | Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   No     | –                                 | Map stanzas to typed rows; validate Splunk-specific rules                    |
 | Normalization pipeline: unpack → walk → parse → bulk insert                   |   No     | –                                 | Service orchestration, provenance, performance via bulk insert               |
 | Background worker: Redis + Celery/RQ, parse task with retries                 |   No     | –                                 | Worker service + task wiring + observability                                 |
@@ -49,7 +49,7 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 ## Recommended New/Remaining Issues (M2)
 
 - Milestone 2 Meta Tracking Issue (Parser & Normalization)
-- Parser core: robust `.conf` parser (comments, line continuations, ordered keys, repeated keys)
+- ~~Parser core: robust `.conf` parser (comments, line continuations, ordered keys, repeated keys)~~ **✓ Completed in Issue #52**
 - Typed projection mappers for inputs/props/transforms/indexes/outputs/serverclasses
 - Normalization pipeline: unpack → parse → bulk insert with provenance and counts
 - Background worker: Redis + Celery/RQ service; `parse_run(run_id)` task with retries/backoff
@@ -94,15 +94,16 @@ Note: The Alembic migration work for schema migrations is complete via Issue #50
 ## Status Rollup (latest)
 
 - Planning: In progress
-- Implementation: Started (schema migrations complete)
+- Implementation: Parser core complete (Issue #52)
 - Issues/PRs:
   - Issues closed: #50
-  - Pull requests: none reported in latest retrieval
+  - Pull requests: #52 (parser core implementation)
 - Blockers: None identified
 
 ---
 
 ## Update Log
 
+- 2025-10-19 (later): Completed parser core implementation (Issue #52). Added comprehensive tests and documentation.
 - 2025-10-19: Marked schema migrations as Present=Yes and noted Issue #50 closed/completed.
 - 2025-10-07: Linked Issue #50 for schema migrations; no open pull requests reported in latest retrieval.
