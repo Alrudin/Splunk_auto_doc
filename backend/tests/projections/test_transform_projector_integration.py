@@ -91,17 +91,17 @@ class TestGoldenFixtures:
         # Find the repeated route_to_index stanza
         # Parser should have captured the last definition
         route_stanzas = [s for s in stanzas if s.name == "route_to_index"]
-        
+
         # Should have the stanza (parser handles last-wins)
         assert len(route_stanzas) >= 1
-        
+
         # The stanza should have the last value
         last_stanza = route_stanzas[-1]
-        
+
         # Verify projection uses last value
         projector = TransformProjector()
         projection = projector.project(last_stanza, run_id=1)
-        
+
         # Last definition has this regex
         assert projection["regex"] == "level=(ERROR|CRITICAL)"
         assert projection["format"] == "critical_index"

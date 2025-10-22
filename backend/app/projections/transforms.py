@@ -130,12 +130,8 @@ class TransformProjector:
             return None
 
         # Case-insensitive comparison for metadata index
-        dest_key_lower = dest_key.lower()
-        if dest_key_lower == "_metadata:index":
-            return True
-
-        # If DEST_KEY is specified but not metadata:index, explicitly False
-        return False
+        # Returns True if matches, False otherwise (for non-None dest_key)
+        return dest_key.lower() == "_metadata:index"
 
     def _detect_writes_meta_sourcetype(self, dest_key: str | None) -> bool | None:
         """Detect if transform writes to _MetaData:Sourcetype or MetaData:Sourcetype.
@@ -166,12 +162,8 @@ class TransformProjector:
 
         # Case-insensitive comparison for metadata sourcetype
         # Both MetaData:Sourcetype and _MetaData:Sourcetype are valid
-        dest_key_lower = dest_key.lower()
-        if dest_key_lower in ("_metadata:sourcetype", "metadata:sourcetype"):
-            return True
-
-        # If DEST_KEY is specified but not metadata:sourcetype, explicitly False
-        return False
+        # Returns True if matches, False otherwise (for non-None dest_key)
+        return dest_key.lower() in ("_metadata:sourcetype", "metadata:sourcetype")
 
     def _build_kv(self, keys: dict[str, Any]) -> dict[str, Any]:
         """Build kv dict with non-extracted fields.
