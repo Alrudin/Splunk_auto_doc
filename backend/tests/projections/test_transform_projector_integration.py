@@ -212,9 +212,7 @@ class TestEdgeCases:
         from app.parser.types import ParsedStanza, Provenance
 
         provenance = Provenance(source_path="/test/transforms.conf")
-        stanza = ParsedStanza(
-            name="empty_transform", keys={}, provenance=provenance
-        )
+        stanza = ParsedStanza(name="empty_transform", keys={}, provenance=provenance)
 
         projector = TransformProjector()
         projection = projector.project(stanza, run_id=1)

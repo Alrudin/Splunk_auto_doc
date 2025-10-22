@@ -21,7 +21,9 @@ class TestDestKeyExtraction:
     def test_metadata_sourcetype(self):
         """Test extraction of MetaData:Sourcetype."""
         projector = TransformProjector()
-        assert projector._extract_dest_key("MetaData:Sourcetype") == "MetaData:Sourcetype"
+        assert (
+            projector._extract_dest_key("MetaData:Sourcetype") == "MetaData:Sourcetype"
+        )
 
     def test_raw_dest_key(self):
         """Test extraction of _raw."""
