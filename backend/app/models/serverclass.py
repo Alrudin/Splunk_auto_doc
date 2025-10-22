@@ -40,6 +40,13 @@ class Serverclass(Base):
     kv: Mapped[dict[str, Any] | None] = mapped_column(
         JSONB, nullable=True, comment="Additional key-value pairs"
     )
+    app: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    scope: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, comment="default or local"
+    )
+    layer: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, comment="system or app"
+    )
 
     # Relationships
     ingestion_run: Mapped["IngestionRun"] = relationship(
