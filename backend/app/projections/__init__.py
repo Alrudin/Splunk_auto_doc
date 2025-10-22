@@ -7,5 +7,6 @@ specific configuration type (inputs, props, transforms, etc.).
 
 from app.projections.indexes import IndexProjector
 from app.projections.inputs import InputProjector
+from app.projections.serverclasses import ServerclassProjector
 
-__all__ = ["InputProjector", "IndexProjector"]
+__all__ = ["InputProjector", "IndexProjector", "ServerclassProjector"]
