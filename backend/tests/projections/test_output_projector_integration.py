@@ -73,7 +73,10 @@ class TestGoldenFixtures:
             None,
         )
         assert backup is not None
-        assert backup["servers"]["server"] == "backup1.example.com:9997, backup2.example.com:9997"
+        assert (
+            backup["servers"]["server"]
+            == "backup1.example.com:9997, backup2.example.com:9997"
+        )
         assert backup["kv"]["autoLBFrequency"] == "60"
 
         # Verify syslog output
@@ -90,7 +93,10 @@ class TestGoldenFixtures:
             (p for p in projections if p["group_name"] == "httpout:hec_output"), None
         )
         assert httpout is not None
-        assert httpout["servers"]["uri"] == "https://hec.splunkcloud.com:8088/services/collector"
+        assert (
+            httpout["servers"]["uri"]
+            == "https://hec.splunkcloud.com:8088/services/collector"
+        )
         assert httpout["kv"]["token"] == "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
         assert httpout["kv"]["sslVerifyServerCert"] == "true"
 
@@ -109,7 +115,10 @@ class TestGoldenFixtures:
         )
         assert dynamic is not None
         # Should have the last server value (new1 and new2)
-        assert dynamic["servers"]["server"] == "new1.example.com:9997, new2.example.com:9997"
+        assert (
+            dynamic["servers"]["server"]
+            == "new1.example.com:9997, new2.example.com:9997"
+        )
         # Should NOT contain old1 or old2
         assert "old1.example.com" not in dynamic["servers"]["server"]
         assert "old2.example.com" not in dynamic["servers"]["server"]
@@ -131,12 +140,18 @@ class TestGoldenFixtures:
         assert len(repeated_stanza.key_history.get("server", [])) == 3
         assert repeated_stanza.key_history["server"][0] == "old1.example.com:9997"
         assert repeated_stanza.key_history["server"][1] == "old2.example.com:9997"
-        assert repeated_stanza.key_history["server"][2] == "new1.example.com:9997, new2.example.com:9997"
+        assert (
+            repeated_stanza.key_history["server"][2]
+            == "new1.example.com:9997, new2.example.com:9997"
+        )
 
         # Verify projection uses last value
         projector = OutputProjector()
         result = projector.project(repeated_stanza, run_id=1)
-        assert result["servers"]["server"] == "new1.example.com:9997, new2.example.com:9997"
+        assert (
+            result["servers"]["server"]
+            == "new1.example.com:9997, new2.example.com:9997"
+        )
 
     def test_run_id_consistency(self):
         """Test that all projections use the same run_id."""
@@ -167,10 +182,7 @@ class TestGoldenFixtures:
         output_types = set()
         for p in projections:
             group_name = p["group_name"]
-            if ":" in group_name:
-                output_type = group_name.split(":")[0]
-            else:
-                output_type = group_name
+            output_type = group_name.split(":")[0] if ":" in group_name else group_name
             output_types.add(output_type)
 
         # Should have tcpout, syslog, and httpout

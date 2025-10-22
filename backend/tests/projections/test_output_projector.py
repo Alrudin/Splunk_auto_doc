@@ -23,7 +23,9 @@ class TestServersBuilding:
         }
         servers = projector._build_servers(keys)
         assert "server" in servers
-        assert servers["server"] == "indexer1.example.com:9997, indexer2.example.com:9997"
+        assert (
+            servers["server"] == "indexer1.example.com:9997, indexer2.example.com:9997"
+        )
 
     def test_uri_field_extracted(self):
         """Test that uri field is extracted to servers dict."""
@@ -184,7 +186,10 @@ class TestProjection:
         assert result["run_id"] == 42
         assert result["group_name"] == "tcpout:primary_indexers"
         assert result["servers"] is not None
-        assert result["servers"]["server"] == "indexer1.example.com:9997, indexer2.example.com:9997"
+        assert (
+            result["servers"]["server"]
+            == "indexer1.example.com:9997, indexer2.example.com:9997"
+        )
         assert result["kv"] is not None
         assert result["kv"]["autoLBFrequency"] == "30"
         assert result["kv"]["maxQueueSize"] == "10MB"
@@ -243,7 +248,10 @@ class TestProjection:
 
         assert result["run_id"] == 1
         assert result["group_name"] == "httpout:hec_output"
-        assert result["servers"]["uri"] == "https://hec.splunkcloud.com:8088/services/collector"
+        assert (
+            result["servers"]["uri"]
+            == "https://hec.splunkcloud.com:8088/services/collector"
+        )
         assert result["kv"]["token"] == "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
         assert result["kv"]["sslVerifyServerCert"] == "true"
         assert "uri" not in result["kv"]

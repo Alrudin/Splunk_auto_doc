@@ -27,7 +27,7 @@ class OutputProjector:
 
     # Common extracted fields that will go into servers JSONB
     SERVER_FIELDS = {"server", "uri"}
-    
+
     # Fields that will go into servers or kv depending on context
     # target_group is similar to server but references other groups
     TARGET_FIELDS = {"target_group"}
