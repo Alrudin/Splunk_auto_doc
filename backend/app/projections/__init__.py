@@ -5,6 +5,7 @@ from the parser into typed database records. Each projector handles a
 specific configuration type (inputs, props, transforms, etc.).
 """
 
+from app.projections.indexes import IndexProjector
 from app.projections.inputs import InputProjector
 
-__all__ = ["InputProjector"]
+__all__ = ["InputProjector", "IndexProjector"]

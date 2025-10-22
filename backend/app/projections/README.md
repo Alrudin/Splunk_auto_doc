@@ -122,12 +122,67 @@ for stanza in stanzas:
 
 See `test_transform_projector.py` for comprehensive test coverage.
 
+### IndexProjector
+
+Projects `indexes.conf` stanzas to the `indexes` table.
+
+**Extracted Fields:**
+- `name`: Index name from stanza header (e.g., "main", "app_index", "metrics")
+- `kv`: All index configuration properties (JSONB)
+
+**Example:**
+
+```python
+from app.parser import ConfParser
+from app.projections import IndexProjector
+
+# Parse indexes.conf
+parser = ConfParser()
+stanzas = parser.parse_file("path/to/indexes.conf")
+
+# Project to Index records
+projector = IndexProjector()
+for stanza in stanzas:
+    index_data = projector.project(stanza, run_id=1)
+    # index_data is ready for Index model instantiation
+```
+
+**Supported Index Types:**
+- Event indexes (default datatype)
+- Metrics indexes (`datatype = metric`)
+- Custom indexes with various retention and storage settings
+
+**Common Index Properties in kv:**
+- `homePath`: Path to hot/warm buckets
+- `coldPath`: Path to cold buckets
+- `thawedPath`: Path to thawed buckets
+- `frozenTimePeriodInSecs`: Retention period in seconds
+- `maxTotalDataSizeMB`: Maximum index size in MB
+- `maxHotBuckets`: Number of hot buckets
+- `maxWarmDBCount`: Maximum warm buckets
+- `datatype`: "event" (default) or "metric"
+- `coldToFrozenDir`: Archive path for frozen data
+- `compressRawdata`: Whether to compress raw data
+- `repFactor`: Replication factor (cluster mode)
+- And many more...
+
+**Edge Cases:**
+- Default stanza (`[default]`) sets defaults for all indexes
+- Empty kv is stored as NULL
+- Index names preserved exactly (including underscores, numbers)
+- All properties stored in JSONB for maximum flexibility
+- Supports Splunk variables like `$SPLUNK_DB` and `$_index_name`
+- Handles Windows and Unix path styles
+
+**Projection Implementation**: `app/projections/indexes.py` - `IndexProjector` class
+
+See `test_index_projector.py` and `test_index_projector_integration.py` for comprehensive test coverage.
+
 ## Future Projectors
 
 The following projectors are planned:
 
 - **PropsProjector**: Projects `props.conf` stanzas
-- **IndexProjector**: Projects `indexes.conf` stanzas
 - **OutputProjector**: Projects `outputs.conf` stanzas
 - **ServerclassProjector**: Projects `serverclass.conf` stanzas
 

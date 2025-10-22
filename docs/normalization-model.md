@@ -187,16 +187,72 @@ Typed tables extract common fields from stanzas into typed columns for efficient
 
 ### indexes
 
-**Purpose**: Normalizes index definitions
+**Purpose**: Normalizes index definitions from indexes.conf
 
 **Key Extraction Logic**:
-- `name` is the index name (stanza name)
-- All index properties stored in `kv` (homePath, coldPath, maxDataSize, etc.)
+- **Index Name**: Extracted from stanza header
+  - Preserved exactly as defined (e.g., "main", "app_index", "_internal")
+  - Special stanza `[default]` sets default values for all indexes
+  - Index names can include underscores, numbers, and hyphens
+- **All Properties in JSONB**: Unlike inputs and transforms, indexes.conf has a vast array of possible settings that vary by index type and deployment configuration. All properties are stored in the `kv` JSONB column for maximum flexibility.
+
+**Common Index Properties** (all in kv):
+- **Storage Paths**:
+  - `homePath`: Path to hot and warm buckets (e.g., `$SPLUNK_DB/$_index_name/db`)
+  - `coldPath`: Path to cold buckets
+  - `thawedPath`: Path to thawed buckets
+  - `coldToFrozenDir`: Archive location for frozen data
+- **Retention Settings**:
+  - `frozenTimePeriodInSecs`: How long to keep data before archiving (e.g., "188697600" = 6 years)
+  - `maxTotalDataSizeMB`: Maximum size of index in MB
+  - `maxGlobalDataSizeMB`: Maximum size across cluster (cluster mode)
+- **Performance Tuning**:
+  - `maxHotBuckets`: Number of hot buckets (default varies)
+  - `maxWarmDBCount`: Maximum number of warm buckets
+  - `maxDataSize`: Maximum size of hot/warm buckets before rolling (e.g., "auto", "10000")
+  - `maxHotSpanSecs`: Time span for hot buckets
+- **Data Type**:
+  - `datatype`: "event" (default) or "metric" for metrics store indexes
+- **Compression & Optimization**:
+  - `compressRawdata`: Whether to compress raw data (true/false)
+  - `enableTsidxReduction`: Enable time-series index reduction (true/false)
+  - `tsidxReductionCheckPeriodInSec`: Check period for TSIDX reduction
+- **Replication** (cluster mode):
+  - `repFactor`: Replication factor (number or "auto")
+  - `maxGlobalRawDataSizeMB`: Maximum raw data size across cluster
+- **Security**:
+  - `coldToFrozenScript`: Script to run when archiving data
+- And many more settings...
+
+**Projection Implementation**: `app/projections/indexes.py` - `IndexProjector` class
 
 **Use Cases**:
-- List all indexes
-- Query index retention settings
-- Find index storage paths
+- List all indexes: `SELECT name FROM indexes WHERE run_id = ?`
+- Find indexes with metrics data: `SELECT * FROM indexes WHERE kv @> '{"datatype": "metric"}'`
+- Query retention settings: `SELECT name, kv->>'frozenTimePeriodInSecs' FROM indexes`
+- Find indexes with custom paths: `SELECT * FROM indexes WHERE kv->>'homePath' LIKE '/custom/%'`
+- Identify indexes with replication: `SELECT * FROM indexes WHERE kv ? 'repFactor'`
+- Find indexes with compression: `SELECT * FROM indexes WHERE kv @> '{"compressRawdata": "true"}'`
+
+**Edge Cases Handled**:
+- Default stanza (`[default]`) provides defaults for all indexes
+- All properties stored in JSONB (no typed extraction except name)
+- Empty `kv` is stored as NULL rather than empty object
+- Index names preserved exactly (case-sensitive)
+- Supports Splunk variables: `$SPLUNK_DB`, `$_index_name`, etc.
+- Handles both Windows (`C:\path\to\index`) and Unix (`/opt/splunk/index`) path styles
+- Last-wins semantics preserved from parser for repeated keys within a stanza
+
+**Splunk-Specific Nuances**:
+- The `[default]` stanza sets defaults that apply to all indexes unless overridden
+- Variable `$_index_name` is replaced with actual index name by Splunk at runtime
+- Retention (`frozenTimePeriodInSecs`) is in seconds (common values: 188697600 = 6 years, 2592000 = 30 days)
+- Size limits (`maxTotalDataSizeMB`) are in megabytes
+- Hot buckets are actively being written to; warm buckets are searchable but not writable; cold buckets are on slower storage; frozen buckets are archived
+- Metrics indexes (`datatype = metric`) use a different storage format optimized for time-series data
+- In clustered environments, `repFactor` and global size limits control replication
+
+See `test_index_projector.py` and `test_index_projector_integration.py` for comprehensive test coverage.
 
 ### outputs
 
@@ -589,6 +645,133 @@ min_matches = 1
 }
 ```
 
+### indexes.conf Stanza Mapping
+
+**Source (default index settings):**
+```ini
+[default]
+frozenTimePeriodInSecs = 188697600
+# 6 years
+maxTotalDataSizeMB = 500000
+homePath = $SPLUNK_DB/$_index_name/db
+coldPath = $SPLUNK_DB/$_index_name/colddb
+thawedPath = $SPLUNK_DB/$_index_name/thaweddb
+```
+
+**Projection (indexes table record):**
+```json
+{
+  "run_id": 42,
+  "name": "default",
+  "kv": {
+    "frozenTimePeriodInSecs": "188697600",
+    "maxTotalDataSizeMB": "500000",
+    "homePath": "$SPLUNK_DB/$_index_name/db",
+    "coldPath": "$SPLUNK_DB/$_index_name/colddb",
+    "thawedPath": "$SPLUNK_DB/$_index_name/thaweddb"
+  }
+}
+```
+
+**Source (main index):**
+```ini
+[main]
+homePath = $SPLUNK_DB/defaultdb/db
+coldPath = $SPLUNK_DB/defaultdb/colddb
+thawedPath = $SPLUNK_DB/defaultdb/thaweddb
+maxTotalDataSizeMB = 1000000
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "main",
+  "kv": {
+    "homePath": "$SPLUNK_DB/defaultdb/db",
+    "coldPath": "$SPLUNK_DB/defaultdb/colddb",
+    "thawedPath": "$SPLUNK_DB/defaultdb/thaweddb",
+    "maxTotalDataSizeMB": "1000000"
+  }
+}
+```
+
+**Source (metrics index):**
+```ini
+[metrics]
+datatype = metric
+frozenTimePeriodInSecs = 7776000
+# 90 days
+maxTotalDataSizeMB = 50000
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "metrics",
+  "kv": {
+    "datatype": "metric",
+    "frozenTimePeriodInSecs": "7776000",
+    "maxTotalDataSizeMB": "50000"
+  }
+}
+```
+
+**Source (custom app index with advanced settings):**
+```ini
+[app_index]
+homePath = /fast-storage/splunk/app_index/db
+coldPath = /archive-storage/splunk/app_index/colddb
+thawedPath = /archive-storage/splunk/app_index/thaweddb
+frozenTimePeriodInSecs = 31536000
+# 1 year
+maxTotalDataSizeMB = 250000
+maxHotBuckets = 10
+maxWarmDBCount = 300
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "app_index",
+  "kv": {
+    "homePath": "/fast-storage/splunk/app_index/db",
+    "coldPath": "/archive-storage/splunk/app_index/colddb",
+    "thawedPath": "/archive-storage/splunk/app_index/thaweddb",
+    "frozenTimePeriodInSecs": "31536000",
+    "maxTotalDataSizeMB": "250000",
+    "maxHotBuckets": "10",
+    "maxWarmDBCount": "300"
+  }
+}
+```
+
+**Source (audit index with frozen archive):**
+```ini
+[audit]
+homePath = $SPLUNK_DB/audit/db
+coldPath = $SPLUNK_DB/audit/colddb
+frozenTimePeriodInSecs = 315360000
+# 10 years
+coldToFrozenDir = /compliance-archive/audit
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "audit",
+  "kv": {
+    "homePath": "$SPLUNK_DB/audit/db",
+    "coldPath": "$SPLUNK_DB/audit/colddb",
+    "frozenTimePeriodInSecs": "315360000",
+    "coldToFrozenDir": "/compliance-archive/audit"
+  }
+}
+```
+
 ## References
 
 - Milestone 2 Plan: `notes/milestone-2-plan.md`
@@ -597,3 +780,4 @@ min_matches = 1
 - PostgreSQL JSONB: [PostgreSQL Docs](https://www.postgresql.org/docs/current/datatype-json.html)
 - Input Projector Implementation: `backend/app/projections/inputs.py`
 - Transform Projector Implementation: `backend/app/projections/transforms.py`
+- Index Projector Implementation: `backend/app/projections/indexes.py`
