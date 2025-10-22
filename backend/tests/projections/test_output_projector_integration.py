@@ -55,8 +55,12 @@ class TestGoldenFixtures:
         assert primary["servers"] is not None
         assert "server" in primary["servers"]
         # Server list should contain all three indexers (comma-separated)
+        # Note: These assertions verify configuration parsing, not URL sanitization
+        # lgtm [py/incomplete-url-substring-sanitization]
         assert "indexer1.example.com:9997" in primary["servers"]["server"]
+        # lgtm [py/incomplete-url-substring-sanitization]
         assert "indexer2.example.com:9997" in primary["servers"]["server"]
+        # lgtm [py/incomplete-url-substring-sanitization]
         assert "indexer3.example.com:9997" in primary["servers"]["server"]
         # Configuration options in kv
         assert primary["kv"]["autoLBFrequency"] == "30"
