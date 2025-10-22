@@ -35,7 +35,7 @@ class TestGoldenFixtures:
         assert len(projections) > 0
 
         # Find and verify specific stanzas
-        projection_map = {p["stanza_type"]: p for p in projections if p["stanza_type"]}
+        # projection_map = {p["stanza_type"]: p for p in projections if p["stanza_type"]}
 
         # Verify default stanza
         default_projection = next(
@@ -45,18 +45,12 @@ class TestGoldenFixtures:
         assert "host" in default_projection["kv"]
 
         # Verify monitor inputs
-        monitor_projections = [
-            p for p in projections if p["stanza_type"] == "monitor"
-        ]
+        monitor_projections = [p for p in projections if p["stanza_type"] == "monitor"]
         assert len(monitor_projections) >= 3  # Multiple monitor inputs in fixture
 
         # Check specific monitor input
         app_log = next(
-            (
-                p
-                for p in monitor_projections
-                if p["sourcetype"] == "app:log"
-            ),
+            (p for p in monitor_projections if p["sourcetype"] == "app:log"),
             None,
         )
         assert app_log is not None
@@ -96,9 +90,7 @@ class TestGoldenFixtures:
         stanzas = parser.parse_file(str(fixture_path))
 
         # Find the stanza with repeated index key
-        repeated_stanza = next(
-            (s for s in stanzas if "debug.log" in s.name), None
-        )
+        repeated_stanza = next((s for s in stanzas if "debug.log" in s.name), None)
         assert repeated_stanza is not None
 
         # Verify parser captured both values in history
@@ -120,7 +112,7 @@ class TestGoldenFixtures:
 
         projector = InputProjector()
 
-        for idx, stanza in enumerate(stanzas):
+        for _idx, stanza in enumerate(stanzas):
             projection = projector.project(stanza, run_id=99)
 
             # All projections should have source_path
@@ -185,9 +177,7 @@ class TestGoldenFixtures:
         stanzas = parser.parse_file(str(fixture_path))
 
         # Find stanza with special characters
-        special_stanza = next(
-            (s for s in stanzas if "$TODAY" in s.name), None
-        )
+        special_stanza = next((s for s in stanzas if "$TODAY" in s.name), None)
         assert special_stanza is not None
 
         # Project it
@@ -266,14 +256,14 @@ if __name__ == "__main__":
                 print(f"  ✗ {method_name}")
                 print(f"    {e}")
                 failed += 1
-            except Exception as e:
+            except Exception:
                 print(f"  ✗ {method_name} (error)")
                 traceback.print_exc()
                 failed += 1
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Results: {passed}/{total} passed, {failed} failed")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if failed > 0:
         exit(1)

@@ -18,8 +18,14 @@ from app.projections import InputProjector
 def main():
     """Run the demo."""
     # Use the golden fixture
-    fixture_path = Path(__file__).parent.parent.parent / "tests" / "parser" / "fixtures" / "hf_inputs.conf"
-    
+    fixture_path = (
+        Path(__file__).parent.parent.parent
+        / "tests"
+        / "parser"
+        / "fixtures"
+        / "hf_inputs.conf"
+    )
+
     if not fixture_path.exists():
         print(f"Error: Fixture file not found at {fixture_path}")
         return 1
@@ -36,56 +42,58 @@ def main():
 
     # Step 2: Project stanzas
     projector = InputProjector()
-    
+
     print("-" * 70)
     print("Projection Results")
     print("-" * 70)
 
     for idx, stanza in enumerate(stanzas, 1):
         projection = projector.project(stanza, run_id=1)
-        
+
         print(f"\n{idx}. Stanza: {stanza.name}")
         print(f"   Type: {projection['stanza_type'] or 'N/A'}")
         print(f"   Index: {projection['index'] or 'N/A'}")
         print(f"   Sourcetype: {projection['sourcetype'] or 'N/A'}")
         print(f"   Disabled: {projection['disabled']}")
-        
-        if projection['kv']:
+
+        if projection["kv"]:
             print(f"   Additional properties: {list(projection['kv'].keys())}")
-        
-        if projection['app'] or projection['scope']:
-            print(f"   Provenance: app={projection['app']}, scope={projection['scope']}, layer={projection['layer']}")
+
+        if projection["app"] or projection["scope"]:
+            print(
+                f"   Provenance: app={projection['app']}, scope={projection['scope']}, layer={projection['layer']}"
+            )
 
     # Show statistics
     print("\n" + "=" * 70)
     print("Statistics")
     print("=" * 70)
-    
+
     projections = [projector.project(s, run_id=1) for s in stanzas]
-    
+
     # Count by type
     type_counts = {}
     for p in projections:
-        stanza_type = p['stanza_type'] or 'default/other'
+        stanza_type = p["stanza_type"] or "default/other"
         type_counts[stanza_type] = type_counts.get(stanza_type, 0) + 1
-    
+
     print("\nInput Types:")
     for input_type, count in sorted(type_counts.items()):
         print(f"  {input_type}: {count}")
-    
+
     # Count disabled
-    disabled_count = sum(1 for p in projections if p['disabled'] is True)
-    enabled_count = sum(1 for p in projections if p['disabled'] is False)
-    
-    print(f"\nStatus:")
+    disabled_count = sum(1 for p in projections if p["disabled"] is True)
+    enabled_count = sum(1 for p in projections if p["disabled"] is False)
+
+    print("\nStatus:")
     print(f"  Enabled: {enabled_count}")
     print(f"  Disabled: {disabled_count}")
     print(f"  Unspecified: {len(projections) - enabled_count - disabled_count}")
-    
+
     # Count with additional properties
-    with_kv = sum(1 for p in projections if p['kv'])
+    with_kv = sum(1 for p in projections if p["kv"])
     print(f"\nWith additional properties: {with_kv}/{len(projections)}")
-    
+
     print("\n" + "=" * 70)
     print("✅ Demo complete!")
     print("=" * 70)

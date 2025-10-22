@@ -40,8 +40,7 @@ class TestStanzaTypeExtraction:
         """Test extraction of WinEventLog:// type."""
         projector = InputProjector()
         assert (
-            projector._extract_stanza_type("WinEventLog://Application")
-            == "wineventlog"
+            projector._extract_stanza_type("WinEventLog://Application") == "wineventlog"
         )
 
     def test_splunktcp_input(self):
@@ -189,10 +188,7 @@ class TestProjection:
         result = projector.project(stanza, run_id=42)
 
         assert result["run_id"] == 42
-        assert (
-            result["source_path"]
-            == "/opt/splunk/etc/apps/search/local/inputs.conf"
-        )
+        assert result["source_path"] == "/opt/splunk/etc/apps/search/local/inputs.conf"
         assert result["stanza_type"] == "monitor"
         assert result["index"] == "main"
         assert result["sourcetype"] == "app:log"
@@ -304,7 +300,11 @@ class TestProjection:
         )
         stanza = ParsedStanza(
             name="WinEventLog://Application",
-            keys={"disabled": "false", "index": "windows", "sourcetype": "WinEventLog:Application"},
+            keys={
+                "disabled": "false",
+                "index": "windows",
+                "sourcetype": "WinEventLog:Application",
+            },
             provenance=provenance,
         )
 
@@ -438,14 +438,14 @@ if __name__ == "__main__":
                 print(f"  ✗ {method_name}")
                 print(f"    {e}")
                 failed += 1
-            except Exception as e:
+            except Exception:
                 print(f"  ✗ {method_name} (error)")
                 traceback.print_exc()
                 failed += 1
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Results: {passed}/{total} passed, {failed} failed")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if failed > 0:
         exit(1)
