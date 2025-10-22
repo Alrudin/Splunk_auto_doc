@@ -15,7 +15,7 @@ from app.parser import ConfParser
 from app.projections import InputProjector
 
 
-def main():
+def main() -> int:
     """Run the demo."""
     # Use the golden fixture
     fixture_path = (
@@ -72,7 +72,7 @@ def main():
     projections = [projector.project(s, run_id=1) for s in stanzas]
 
     # Count by type
-    type_counts = {}
+    type_counts: dict[str, int] = {}
     for p in projections:
         stanza_type = p["stanza_type"] or "default/other"
         type_counts[stanza_type] = type_counts.get(stanza_type, 0) + 1
