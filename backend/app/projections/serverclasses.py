@@ -34,9 +34,9 @@ class ServerclassProjector:
     BLACKLIST_PATTERN = re.compile(r"^blacklist\.(\d+)$")
 
     # Fields that go into typed columns or are handled specially
-    SPECIAL_FIELDS = set()
+    SPECIAL_FIELDS: set[str] = set()
 
-    def project(self, stanza: ParsedStanza, run_id: int) -> dict[str, Any]:
+    def project(self, stanza: ParsedStanza, run_id: int) -> dict[str, Any] | None:
         """Project a parsed stanza to a Serverclass record dictionary.
 
         Args:
@@ -44,7 +44,7 @@ class ServerclassProjector:
             run_id: ID of the ingestion run
 
         Returns:
-            Dictionary with fields for Serverclass model:
+            Dictionary with fields for Serverclass model, or None if stanza should be skipped:
             - run_id: Ingestion run ID
             - name: Serverclass name
             - whitelist: Whitelist patterns (JSONB)
