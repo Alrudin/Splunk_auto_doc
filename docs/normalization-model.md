@@ -156,15 +156,34 @@ Typed tables extract common fields from stanzas into typed columns for efficient
 **Purpose**: Normalizes field extraction and routing transforms
 
 **Key Extraction Logic**:
-- Extract `DEST_KEY`, `REGEX`, `FORMAT` to typed columns
-- Set `writes_meta_index` = true if `DEST_KEY` = `_MetaData:Index`
-- Set `writes_meta_sourcetype` = true if `DEST_KEY` = `_MetaData:Sourcetype`
-- Remaining properties in `kv`
+- **Typed Column Extraction**:
+  - `name`: Transform name from stanza header
+  - `dest_key`: DEST_KEY value (if specified) - normalized by trimming whitespace
+  - `regex`: REGEX pattern (if specified) - preserved as-is for validation
+  - `format`: FORMAT template (if specified) - used for output formatting
+- **Metadata Write Detection**:
+  - `writes_meta_index`: Set to `true` if DEST_KEY = `_MetaData:Index` (case-insensitive)
+  - `writes_meta_sourcetype`: Set to `true` if DEST_KEY = `MetaData:Sourcetype` or `_MetaData:Sourcetype` (case-insensitive)
+  - Both flags set to `false` if DEST_KEY is specified but not metadata-related
+  - Both flags set to `null` if DEST_KEY is not specified
+- **Additional Properties**: All non-extracted fields stored in `kv` JSONB
+  - Examples: `PRIORITY`, `MV_ADD`, `WRITE_META`, `LOOKAHEAD`, `filename`, `max_matches`, etc.
+
+**Projection Implementation**: `app/projections/transforms.py` - `TransformProjector` class
 
 **Use Cases**:
-- Find transforms that modify index/sourcetype
-- Analyze field extraction patterns
-- Validate REGEX correctness
+- Find transforms that modify index/sourcetype: `SELECT * FROM transforms WHERE writes_meta_index = true`
+- Analyze field extraction patterns: `SELECT name, regex, format FROM transforms WHERE regex IS NOT NULL`
+- Validate REGEX correctness: `SELECT * FROM transforms WHERE regex LIKE '%ERROR%'`
+- Find data masking transforms: `SELECT * FROM transforms WHERE dest_key = '_raw'`
+- Query lookup-based transforms: `SELECT * FROM transforms WHERE kv ? 'filename'`
+
+**Edge Cases Handled**:
+- DEST_KEY case variations: `_MetaData:Index`, `_metadata:index`, `MetaData:Sourcetype`, `metadata:sourcetype`
+- Missing fields: All extracted fields can be NULL if not specified
+- Multi-line REGEX with continuations: Parser handles line continuations before projection
+- Empty kv is stored as NULL rather than empty object
+- Last-wins semantics preserved from parser for repeated stanza definitions
 
 ### indexes
 
@@ -452,6 +471,124 @@ index = default
 }
 ```
 
+### transforms.conf Stanza Mapping
+
+**Source (index routing transform):**
+```ini
+[route_to_index]
+REGEX = level=ERROR
+DEST_KEY = _MetaData:Index
+FORMAT = error_index
+```
+
+**Projection (transforms table record):**
+```json
+{
+  "run_id": 42,
+  "name": "route_to_index",
+  "dest_key": "_MetaData:Index",
+  "regex": "level=ERROR",
+  "format": "error_index",
+  "writes_meta_index": true,
+  "writes_meta_sourcetype": false,
+  "kv": null
+}
+```
+
+**Source (sourcetype override):**
+```ini
+[override_sourcetype]
+REGEX = .
+DEST_KEY = MetaData:Sourcetype
+FORMAT = sourcetype::overridden:log
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "override_sourcetype",
+  "dest_key": "MetaData:Sourcetype",
+  "regex": ".",
+  "format": "sourcetype::overridden:log",
+  "writes_meta_index": false,
+  "writes_meta_sourcetype": true,
+  "kv": null
+}
+```
+
+**Source (field extraction):**
+```ini
+[extract_special_fields]
+REGEX = ^(?P<event_id>\d+)\s+(?P<severity>\w+)
+FORMAT = event_id::$1 severity::$2
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "extract_special_fields",
+  "dest_key": null,
+  "regex": "^(?P<event_id>\\d+)\\s+(?P<severity>\\w+)",
+  "format": "event_id::$1 severity::$2",
+  "writes_meta_index": null,
+  "writes_meta_sourcetype": null,
+  "kv": null
+}
+```
+
+**Source (data masking with additional properties):**
+```ini
+[mask_sensitive_data]
+REGEX = (password|ssn|credit_card)=(\S+)
+FORMAT = $1=***MASKED***
+DEST_KEY = _raw
+PRIORITY = 100
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "mask_sensitive_data",
+  "dest_key": "_raw",
+  "regex": "(password|ssn|credit_card)=(\\S+)",
+  "format": "$1=***MASKED***",
+  "writes_meta_index": false,
+  "writes_meta_sourcetype": false,
+  "kv": {
+    "PRIORITY": "100"
+  }
+}
+```
+
+**Source (lookup transform):**
+```ini
+[lookup_transform]
+filename = lookup.csv
+max_matches = 1
+min_matches = 1
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "name": "lookup_transform",
+  "dest_key": null,
+  "regex": null,
+  "format": null,
+  "writes_meta_index": null,
+  "writes_meta_sourcetype": null,
+  "kv": {
+    "filename": "lookup.csv",
+    "max_matches": "1",
+    "min_matches": "1"
+  }
+}
+```
+
 ## References
 
 - Milestone 2 Plan: `notes/milestone-2-plan.md`
@@ -459,3 +596,4 @@ index = default
 - Splunk Configuration File Precedence: [Splunk Docs](https://docs.splunk.com/Documentation/Splunk/latest/Admin/Wheretofindtheconfigurationfiles)
 - PostgreSQL JSONB: [PostgreSQL Docs](https://www.postgresql.org/docs/current/datatype-json.html)
 - Input Projector Implementation: `backend/app/projections/inputs.py`
+- Transform Projector Implementation: `backend/app/projections/transforms.py`
