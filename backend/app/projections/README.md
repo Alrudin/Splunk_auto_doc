@@ -178,13 +178,68 @@ for stanza in stanzas:
 
 See `test_index_projector.py` and `test_index_projector_integration.py` for comprehensive test coverage.
 
+### ServerclassProjector
+
+Projects `serverclass.conf` stanzas to the `serverclasses` table.
+
+**Extracted Fields:**
+- `name`: Serverclass name from stanza header (e.g., "production", "universal_forwarders")
+- `whitelist`: JSONB dictionary of whitelist patterns (from `whitelist.N` keys)
+- `blacklist`: JSONB dictionary of blacklist patterns (from `blacklist.N` keys)
+- `app_assignments`: JSONB dictionary of app assignments (reserved for future, currently NULL)
+- `kv`: Additional properties (JSONB)
+
+**Example:**
+
+```python
+from app.parser import ConfParser
+from app.projections import ServerclassProjector
+
+# Parse serverclass.conf
+parser = ConfParser()
+stanzas = parser.parse_file("path/to/serverclass.conf")
+
+# Project to Serverclass records
+projector = ServerclassProjector()
+for stanza in stanzas:
+    serverclass_data = projector.project(stanza, run_id=1)
+    # serverclass_data is ready for Serverclass model instantiation
+```
+
+**Supported Stanza Types:**
+- `serverClass:name` - Serverclass definitions with targeting rules
+- `serverClass:name:app:appname` - App assignments (identified but not projected)
+- `global` - Global settings (skipped)
+
+**Common Properties in kv:**
+- `restartSplunkd`: Whether to restart Splunkd on deployment
+- `restartSplunkWeb`: Whether to restart SplunkWeb on deployment
+- `stateOnClient`: Deployment state (enabled/disabled/noop)
+- `machineTypesFilter`: OS/architecture filter (e.g., "linux-x86_64")
+- `repositoryLocation`: Custom app repository path
+- `targetRepositoryLocation`: Target location on client
+- `continueMatching`: Whether to continue matching other serverclasses
+- And many more...
+
+**Edge Cases:**
+- Global stanza (`[global]`) is not projected (returns None)
+- App assignment stanzas are not projected (returns None, reserved for future)
+- Whitelist/blacklist patterns are extracted from numbered keys (`whitelist.0`, `whitelist.1`, etc.)
+- Non-sequential numbers are preserved in the JSONB dictionary
+- Last-wins semantics apply for duplicate numbers
+- Empty whitelist/blacklist stored as NULL
+- Empty kv stored as NULL
+
+**Projection Implementation**: `app/projections/serverclasses.py` - `ServerclassProjector` class
+
+See `test_serverclass_projector.py` and `test_serverclass_projector_integration.py` for comprehensive test coverage.
+
 ## Future Projectors
 
 The following projectors are planned:
 
 - **PropsProjector**: Projects `props.conf` stanzas
 - **OutputProjector**: Projects `outputs.conf` stanzas
-- **ServerclassProjector**: Projects `serverclass.conf` stanzas
 
 ## Design Principles
 

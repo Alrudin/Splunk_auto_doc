@@ -270,19 +270,91 @@ See `test_index_projector.py` and `test_index_projector_integration.py` for comp
 
 ### serverclasses
 
-**Purpose**: Normalizes deployment server configurations
+**Purpose**: Normalizes deployment server configurations from serverclass.conf
 
 **Key Extraction Logic**:
-- `name` is the serverclass name
-- `whitelist` JSONB contains host patterns
-- `blacklist` JSONB contains exclusion patterns
-- `app_assignments` JSONB contains app deployment rules
-- Remaining properties in `kv`
+- **Serverclass Name Detection**: Extract serverclass name from stanza header using regex pattern `^serverClass:([^:]+)$`
+  - Supported formats: `serverClass:production`, `serverClass:universal_forwarders`, etc.
+  - Serverclass names can contain letters, numbers, and underscores
+  - App assignment stanzas (`serverClass:name:app:appname`) are identified but not currently projected
+  - Global stanza (`[global]`) is skipped
+- **Typed Column Extraction**:
+  - `name`: Serverclass name extracted from stanza header
+  - `whitelist`: JSONB dictionary of whitelist patterns from `whitelist.N` keys
+    - Keys are numbered (e.g., `whitelist.0`, `whitelist.1`, `whitelist.2`)
+    - Stored as dict mapping number to pattern: `{"0": "prod-*.example.com", "1": "uf-*.example.com"}`
+    - Numbers may be non-sequential
+    - Last-wins semantics apply for duplicate numbers
+  - `blacklist`: JSONB dictionary of blacklist patterns from `blacklist.N` keys
+    - Same structure as whitelist
+    - Used to exclude hosts from serverclass membership
+  - `app_assignments`: JSONB dictionary of app assignments (currently NULL, reserved for future)
+  - `kv`: Additional properties (JSONB)
+    - Examples: `restartSplunkd`, `restartSplunkWeb`, `stateOnClient`, `machineTypesFilter`, etc.
+- **Provenance Preservation**:
+  - `app`: App name extracted from file path
+  - `scope`: "default" or "local" from file path
+  - `layer`: "system" or "app" from file path
+
+**Projection Implementation**: `app/projections/serverclasses.py` - `ServerclassProjector` class
 
 **Use Cases**:
-- List serverclasses for a host pattern
-- Find all apps deployed via a serverclass
-- Validate whitelist/blacklist rules
+- List all serverclasses: `SELECT name FROM serverclasses`
+- Find serverclasses whitelisting a host pattern: `SELECT * FROM serverclasses WHERE whitelist @> '{"0": "prod-*.example.com"}'`
+- Find serverclasses with specific settings: `SELECT * FROM serverclasses WHERE kv @> '{"restartSplunkd": "true"}'`
+- Validate whitelist/blacklist rules for deployment targeting
+
+**Supported Stanza Types**:
+- `[serverClass:name]` - Serverclass definition with targeting rules
+- `[serverClass:name:app:appname]` - App assignment (identified but not projected in current implementation)
+- `[global]` - Global settings (skipped by projector)
+
+**Edge Cases Handled**:
+- Global stanza is not projected (returns None)
+- App assignment stanzas are not projected (returns None, reserved for future aggregation)
+- Non-serverclass stanzas return None
+- Empty whitelist/blacklist are stored as NULL
+- Empty kv is stored as NULL
+- Missing provenance metadata defaults to NULL
+- Non-sequential whitelist/blacklist numbers are preserved
+- Last-wins semantics for duplicate whitelist/blacklist numbers
+
+**Example Projection**:
+
+From this serverclass.conf stanza:
+```ini
+[serverClass:production]
+whitelist.0 = prod-hf-*.example.com
+whitelist.1 = prod-uf-*.example.com
+blacklist.0 = *-test.example.com
+restartSplunkd = true
+restartSplunkWeb = false
+```
+
+Projected as:
+```python
+{
+    "run_id": 1,
+    "name": "production",
+    "whitelist": {
+        "0": "prod-hf-*.example.com",
+        "1": "prod-uf-*.example.com"
+    },
+    "blacklist": {
+        "0": "*-test.example.com"
+    },
+    "app_assignments": None,
+    "kv": {
+        "restartSplunkd": "true",
+        "restartSplunkWeb": "false"
+    },
+    "app": "deployment",
+    "scope": "local",
+    "layer": "app"
+}
+```
+
+See `test_serverclass_projector.py` and `test_serverclass_projector_integration.py` for comprehensive test coverage.
 
 ## Provenance and Precedence
 
