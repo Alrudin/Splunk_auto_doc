@@ -104,14 +104,37 @@ Typed tables extract common fields from stanzas into typed columns for efficient
 **Purpose**: Normalizes Splunk input configurations (monitor, tcp, udp, scripts, etc.)
 
 **Key Extraction Logic**:
-- Detect input type from stanza name prefix (`monitor://`, `tcp://`, etc.)
-- Extract `index`, `sourcetype`, `disabled` to typed columns
-- Store remaining properties in `kv` JSONB
+- **Stanza Type Detection**: Extract input type from stanza name prefix using regex pattern `^([^:]+)://`
+  - Supported types: `monitor://`, `tcp://`, `udp://`, `script://`, `WinEventLog://`, `splunktcp://`, `http://`, `fifo://`, and others
+  - Type is normalized to lowercase (e.g., "WinEventLog" → "wineventlog")
+  - Default and other stanzas without type prefix have `stanza_type = NULL`
+- **Typed Column Extraction**:
+  - `index`: Target index for events (if specified)
+  - `sourcetype`: Event sourcetype (if specified)
+  - `disabled`: Boolean field normalized from Splunk's string values
+    - Accepts: "0"/"1", "true"/"false", "yes"/"no" (case-insensitive)
+    - Whitespace is trimmed before conversion
+- **Additional Properties**: All non-extracted fields stored in `kv` JSONB
+  - Examples: `followTail`, `recursive`, `connection_host`, `interval`, `queueSize`, etc.
+- **Provenance Preservation**:
+  - `source_path`: Full path to source inputs.conf file
+  - `app`: App name extracted from file path
+  - `scope`: "default" or "local" from file path
+  - `layer`: "system" or "app" from file path
+
+**Projection Implementation**: `app/projections/inputs.py` - `InputProjector` class
 
 **Use Cases**:
-- List all inputs by type
-- Find inputs writing to specific index
-- Identify disabled inputs
+- List all inputs by type: `SELECT * FROM inputs WHERE stanza_type = 'monitor'`
+- Find inputs writing to specific index: `SELECT * FROM inputs WHERE index = 'main'`
+- Identify disabled inputs: `SELECT * FROM inputs WHERE disabled = true`
+- Query inputs with specific properties: `SELECT * FROM inputs WHERE kv @> '{"followTail": "1"}'`
+
+**Edge Cases Handled**:
+- Stanzas without type prefix (e.g., `[default]`) have `stanza_type = NULL`
+- Missing provenance metadata defaults to NULL or `<unknown>` for source_path
+- Empty `kv` is stored as NULL rather than empty object
+- Last-wins semantics preserved from parser for repeated keys
 
 ### props
 
@@ -355,9 +378,84 @@ Planned for future milestones:
 2. **M4 - Routing Resolver**: Apply precedence rules to compute effective configurations
 3. **M5 - Data Flow Paths**: Trace complete data paths from input to index
 
+## Example Mappings
+
+### inputs.conf Stanza Mapping
+
+**Source (inputs.conf stanza):**
+```ini
+[monitor:///var/log/app.log]
+disabled = false
+index = main
+sourcetype = app:log
+followTail = 1
+recursive = true
+```
+
+**Projection (inputs table record):**
+```json
+{
+  "run_id": 42,
+  "source_path": "/opt/splunk/etc/apps/search/local/inputs.conf",
+  "stanza_type": "monitor",
+  "index": "main",
+  "sourcetype": "app:log",
+  "disabled": false,
+  "kv": {
+    "followTail": "1",
+    "recursive": "true"
+  },
+  "app": "search",
+  "scope": "local",
+  "layer": "app"
+}
+```
+
+**Source (tcp input):**
+```ini
+[tcp://9997]
+disabled = 0
+connection_host = ip
+sourcetype = splunk:tcp
+```
+
+**Projection:**
+```json
+{
+  "stanza_type": "tcp",
+  "index": null,
+  "sourcetype": "splunk:tcp",
+  "disabled": false,
+  "kv": {
+    "connection_host": "ip"
+  }
+}
+```
+
+**Source (default stanza):**
+```ini
+[default]
+host = hf-01.example.com
+index = default
+```
+
+**Projection:**
+```json
+{
+  "stanza_type": null,
+  "index": "default",
+  "sourcetype": null,
+  "disabled": null,
+  "kv": {
+    "host": "hf-01.example.com"
+  }
+}
+```
+
 ## References
 
 - Milestone 2 Plan: `notes/milestone-2-plan.md`
 - Database Schema: `notes/database-schema.md`
 - Splunk Configuration File Precedence: [Splunk Docs](https://docs.splunk.com/Documentation/Splunk/latest/Admin/Wheretofindtheconfigurationfiles)
 - PostgreSQL JSONB: [PostgreSQL Docs](https://www.postgresql.org/docs/current/datatype-json.html)
+- Input Projector Implementation: `backend/app/projections/inputs.py`
