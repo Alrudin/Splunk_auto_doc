@@ -266,9 +266,10 @@ class TestIndexProjectorIntegration:
 
         # The parser should have assembled the continued lines
         # Check that the path doesn't contain backslash continuation
-        assert "\\" not in result["kv"]["homePath"] or "line/continuation" in result[
-            "kv"
-        ]["homePath"]
+        assert (
+            "\\" not in result["kv"]["homePath"]
+            or "line/continuation" in result["kv"]["homePath"]
+        )
 
     def test_all_indexes_have_valid_names(self):
         """Test that all projected indexes have valid names."""
@@ -328,9 +329,9 @@ class TestIndexProjectorIntegration:
         # Verify key scenarios are covered
         assert "default" in index_names, "Should have [default] stanza"
         assert "main" in index_names, "Should have main index"
-        assert (
-            "metrics" in index_names or "app_index" in index_names
-        ), "Should have custom indexes"
+        assert "metrics" in index_names or "app_index" in index_names, (
+            "Should have custom indexes"
+        )
 
         # Project all to verify no errors
         projector = IndexProjector()
