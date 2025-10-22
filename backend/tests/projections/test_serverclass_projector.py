@@ -16,12 +16,18 @@ class TestServerclassNameExtraction:
     def test_simple_serverclass(self):
         """Test extraction of simple serverclass name."""
         projector = ServerclassProjector()
-        assert projector._extract_serverclass_name("serverClass:production") == "production"
+        assert (
+            projector._extract_serverclass_name("serverClass:production")
+            == "production"
+        )
 
     def test_serverclass_with_underscores(self):
         """Test serverclass with underscores in name."""
         projector = ServerclassProjector()
-        assert projector._extract_serverclass_name("serverClass:universal_forwarders") == "universal_forwarders"
+        assert (
+            projector._extract_serverclass_name("serverClass:universal_forwarders")
+            == "universal_forwarders"
+        )
 
     def test_serverclass_with_numbers(self):
         """Test serverclass with numbers in name."""
@@ -31,7 +37,12 @@ class TestServerclassNameExtraction:
     def test_serverclass_app_assignment(self):
         """Test extraction from app assignment stanza."""
         projector = ServerclassProjector()
-        assert projector._extract_serverclass_name("serverClass:production:app:Splunk_TA_nix") == "production"
+        assert (
+            projector._extract_serverclass_name(
+                "serverClass:production:app:Splunk_TA_nix"
+            )
+            == "production"
+        )
 
     def test_global_stanza(self):
         """Test that global stanza has no serverclass name."""

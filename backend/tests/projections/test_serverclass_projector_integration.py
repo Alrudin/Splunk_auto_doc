@@ -17,7 +17,9 @@ class TestServerclassFixture:
         """Test parsing and projecting the serverclass.conf fixture."""
         # Parse the fixture file
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         # Project all stanzas
@@ -45,7 +47,9 @@ class TestServerclassFixture:
     def test_production_serverclass(self):
         """Test projection of production serverclass from fixture."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -75,7 +79,9 @@ class TestServerclassFixture:
     def test_indexers_serverclass(self):
         """Test projection of indexers serverclass from fixture."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -101,7 +107,9 @@ class TestServerclassFixture:
     def test_universal_forwarders_serverclass(self):
         """Test projection of universal_forwarders serverclass from fixture."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -126,7 +134,9 @@ class TestServerclassFixture:
     def test_test_serverclass_with_overridden_whitelist(self):
         """Test projection of test serverclass with overridden whitelist.0."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -149,7 +159,9 @@ class TestServerclassFixture:
     def test_deprecated_serverclass(self):
         """Test projection of deprecated serverclass from fixture."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -174,7 +186,9 @@ class TestServerclassFixture:
     def test_global_stanza_not_projected(self):
         """Test that global stanza is not projected."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -193,7 +207,9 @@ class TestServerclassFixture:
     def test_app_assignment_stanzas_not_projected(self):
         """Test that app assignment stanzas are not projected."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
@@ -216,7 +232,9 @@ class TestEdgeCases:
     def test_serverclass_with_continuation_line(self):
         """Test that continuation lines are handled by parser."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         # Find the production:app:TA-custom-app stanza with continuation
@@ -239,7 +257,9 @@ class TestProvenance:
     def test_provenance_preserved(self):
         """Test that provenance metadata is preserved in projections."""
         parser = ConfParser()
-        fixture_path = Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        fixture_path = (
+            Path(__file__).parent.parent / "parser" / "fixtures" / "serverclass.conf"
+        )
         stanzas = parser.parse_file(str(fixture_path))
 
         projector = ServerclassProjector()
