@@ -256,17 +256,73 @@ See `test_index_projector.py` and `test_index_projector_integration.py` for comp
 
 ### outputs
 
-**Purpose**: Normalizes forwarding configurations
+**Purpose**: Normalizes forwarding configurations from outputs.conf
 
 **Key Extraction Logic**:
-- `group_name` is the output group (stanza name)
-- `servers` JSONB contains server list and configurations
-- Remaining properties in `kv`
+- **Group Name**: Extracted from stanza header
+  - Preserved exactly as defined (e.g., "tcpout", "tcpout:primary_indexers", "syslog:siem_output", "httpout:hec_output")
+  - Default stanza `[tcpout]` sets default forwarding behavior
+  - Named groups use colon syntax: `<type>:<name>`
+- **Servers JSONB**: Contains server-related configuration
+  - `server`: Comma-separated list of server:port pairs (for tcpout, syslog)
+    - Example: "indexer1.example.com:9997, indexer2.example.com:9997, indexer3.example.com:9997"
+  - `uri`: HTTP(S) URI for HEC outputs
+    - Example: "https://hec.splunkcloud.com:8088/services/collector"
+  - `target_group`: Reference to other output groups (for cloning/routing)
+    - Example: "primary_indexers, backup_indexers"
+  - Empty servers is stored as NULL (e.g., for `[tcpout]` default stanza)
+- **Additional Properties**: All non-server fields stored in `kv` JSONB
+  - Examples: `compressed`, `autoLBFrequency`, `maxQueueSize`, `defaultGroup`, `indexAndForward`, `token`, `sslVerifyServerCert`, etc.
+
+**Projection Implementation**: `app/projections/outputs.py` - `OutputProjector` class
+
+**Common Output Properties** (in kv):
+- **Load Balancing & Performance**:
+  - `autoLBFrequency`: Load balancing frequency in seconds (e.g., "30")
+  - `maxQueueSize`: Maximum queue size (e.g., "10MB")
+  - `compressed`: Whether to compress data (true/false)
+- **Default Settings** (in `[tcpout]` stanza):
+  - `defaultGroup`: Default output group to use
+  - `indexAndForward`: Whether to index locally and forward (true/false)
+  - `forwardedindex.filter.disable`: Disable index filtering (true/false)
+- **HEC-Specific** (in `httpout:*` stanzas):
+  - `token`: Authentication token
+  - `sslVerifyServerCert`: SSL certificate verification (true/false)
+- **Syslog-Specific** (in `syslog:*` stanzas):
+  - `type`: Output type (tcp/udp)
+  - `priority`: Syslog priority (e.g., "<134>")
+- **Routing**:
+  - `target_group`: Reference to other groups for cloning/routing
+- And many more settings...
 
 **Use Cases**:
-- List all forwarding destinations
-- Find outputs by target server
-- Analyze load balancing configuration
+- List all forwarding destinations: `SELECT * FROM outputs WHERE servers IS NOT NULL`
+- Find outputs by target server: `SELECT * FROM outputs WHERE servers->>'server' LIKE '%indexer1%'`
+- Analyze load balancing configuration: `SELECT group_name, kv->>'autoLBFrequency' FROM outputs`
+- Find HEC outputs: `SELECT * FROM outputs WHERE group_name LIKE 'httpout:%'`
+- Query clone groups: `SELECT * FROM outputs WHERE servers ? 'target_group'`
+- Find compressed outputs: `SELECT * FROM outputs WHERE kv @> '{"compressed": "true"}'`
+
+**Edge Cases Handled**:
+- Default stanza (`[tcpout]`) has `servers = NULL` (no server-related fields)
+- Multiple server values use last-wins semantics (e.g., repeated `server =` lines)
+- Comma-separated server lists are preserved as single string value
+- Empty `servers` and `kv` are stored as NULL rather than empty object
+- Group names preserved exactly (case-sensitive)
+- `target_group` allows routing to multiple destination groups
+
+**Splunk-Specific Nuances**:
+- The `[tcpout]` stanza sets global defaults for all tcpout groups
+- Named groups (`tcpout:<name>`) define specific indexer destinations
+- Load balancing (`autoLBFrequency`) distributes events across multiple servers in a group
+- `indexAndForward` allows a forwarder to both index locally and forward to indexers
+- `target_group` enables cloning data to multiple groups simultaneously
+- HEC outputs (`httpout:*`) use token authentication and HTTPS
+- Syslog outputs can use TCP or UDP and support standard syslog priorities
+- Server lists support comma-separated values for multiple destinations
+- Last-wins semantics apply when `server` is defined multiple times in same stanza
+
+See `test_output_projector.py` and `test_output_projector_integration.py` for comprehensive test coverage.
 
 ### serverclasses
 
@@ -841,6 +897,139 @@ coldToFrozenDir = /compliance-archive/audit
     "frozenTimePeriodInSecs": "315360000",
     "coldToFrozenDir": "/compliance-archive/audit"
   }
+}
+```
+
+### outputs.conf Stanza Mapping
+
+**Source (default tcpout settings):**
+```ini
+[tcpout]
+defaultGroup = primary_indexers
+forwardedindex.filter.disable = true
+indexAndForward = false
+```
+
+**Projection (outputs table record):**
+```json
+{
+  "run_id": 42,
+  "group_name": "tcpout",
+  "servers": null,
+  "kv": {
+    "defaultGroup": "primary_indexers",
+    "forwardedindex.filter.disable": "true",
+    "indexAndForward": "false"
+  }
+}
+```
+
+**Source (TCP output group with load balancing):**
+```ini
+[tcpout:primary_indexers]
+server = indexer1.example.com:9997, indexer2.example.com:9997, indexer3.example.com:9997
+autoLBFrequency = 30
+maxQueueSize = 10MB
+compressed = true
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "group_name": "tcpout:primary_indexers",
+  "servers": {
+    "server": "indexer1.example.com:9997, indexer2.example.com:9997, indexer3.example.com:9997"
+  },
+  "kv": {
+    "autoLBFrequency": "30",
+    "maxQueueSize": "10MB",
+    "compressed": "true"
+  }
+}
+```
+
+**Source (syslog output):**
+```ini
+[syslog:siem_output]
+server = siem.example.com:514
+type = tcp
+priority = <134>
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "group_name": "syslog:siem_output",
+  "servers": {
+    "server": "siem.example.com:514"
+  },
+  "kv": {
+    "type": "tcp",
+    "priority": "<134>"
+  }
+}
+```
+
+**Source (HTTP Event Collector output):**
+```ini
+[httpout:hec_output]
+uri = https://hec.splunkcloud.com:8088/services/collector
+token = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+sslVerifyServerCert = true
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "group_name": "httpout:hec_output",
+  "servers": {
+    "uri": "https://hec.splunkcloud.com:8088/services/collector"
+  },
+  "kv": {
+    "token": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "sslVerifyServerCert": "true"
+  }
+}
+```
+
+**Source (clone group with target_group):**
+```ini
+[tcpout:clone_group]
+target_group = primary_indexers, backup_indexers
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "group_name": "tcpout:clone_group",
+  "servers": {
+    "target_group": "primary_indexers, backup_indexers"
+  },
+  "kv": null
+}
+```
+
+**Source (last-wins semantics with repeated server):**
+```ini
+[tcpout:dynamic_group]
+server = old1.example.com:9997
+server = old2.example.com:9997
+server = new1.example.com:9997, new2.example.com:9997
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "group_name": "tcpout:dynamic_group",
+  "servers": {
+    "server": "new1.example.com:9997, new2.example.com:9997"
+  },
+  "kv": null
 }
 ```
 

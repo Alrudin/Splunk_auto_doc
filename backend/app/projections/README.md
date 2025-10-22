@@ -178,6 +178,13 @@ for stanza in stanzas:
 
 See `test_index_projector.py` and `test_index_projector_integration.py` for comprehensive test coverage.
 
+### OutputProjector
+
+Projects `outputs.conf` stanzas to the `outputs` table.
+
+**Extracted Fields:**
+- `group_name`: Output group name from stanza header
+- `servers`: Server configurations (JSONB) - includes `server`, `uri`, `target_group`
 ### ServerclassProjector
 
 Projects `serverclass.conf` stanzas to the `serverclasses` table.
@@ -193,6 +200,54 @@ Projects `serverclass.conf` stanzas to the `serverclasses` table.
 
 ```python
 from app.parser import ConfParser
+from app.projections.outputs import OutputProjector
+
+# Parse outputs.conf
+parser = ConfParser()
+stanzas = parser.parse_file("path/to/outputs.conf")
+
+# Project to Output records
+projector = OutputProjector()
+for stanza in stanzas:
+    output_data = projector.project(stanza, run_id=1)
+    # output_data is ready for Output model instantiation
+```
+
+**Supported Output Types:**
+- `tcpout` - TCP forwarding to indexers
+- `tcpout:<group>` - Named TCP output groups
+- `syslog:<name>` - Syslog forwarding
+- `httpout:<name>` - HTTP Event Collector (HEC) forwarding
+- And others
+
+**Servers JSONB Structure:**
+- `server`: Comma-separated list of server:port pairs (for tcpout, syslog)
+- `uri`: HTTP(S) URI for HEC outputs
+- `target_group`: Reference to other output groups (for cloning/routing)
+
+**Common Properties in kv:**
+- `compressed`: Whether to compress data
+- `autoLBFrequency`: Load balancing frequency in seconds
+- `maxQueueSize`: Maximum queue size
+- `defaultGroup`: Default output group (in `[tcpout]` stanza)
+- `indexAndForward`: Whether to index locally and forward
+- `token`: Authentication token (for HEC)
+- `sslVerifyServerCert`: SSL certificate verification
+- `type`: Output type (tcp/udp for syslog)
+- `priority`: Syslog priority
+- And many more...
+
+**Edge Cases:**
+- Default stanza (`[tcpout]`) has `servers = NULL` (no server field)
+- Empty servers is stored as NULL
+- Empty kv is stored as NULL
+- Multiple server values use last-wins semantics
+- Comma-separated server lists are preserved as single string
+- `target_group` refers to other output groups for cloning
+
+**Projection Implementation**: `app/projections/outputs.py` - `OutputProjector` class
+
+See `test_output_projector.py` and `test_output_projector_integration.py` for comprehensive test coverage.
 from app.projections import ServerclassProjector
 
 # Parse serverclass.conf
@@ -239,6 +294,7 @@ See `test_serverclass_projector.py` and `test_serverclass_projector_integration.
 The following projectors are planned:
 
 - **PropsProjector**: Projects `props.conf` stanzas
+- **ServerclassProjector**: Projects `serverclass.conf` stanzas
 - **OutputProjector**: Projects `outputs.conf` stanzas
 
 ## Design Principles
