@@ -141,15 +141,41 @@ Typed tables extract common fields from stanzas into typed columns for efficient
 **Purpose**: Normalizes sourcetype and source properties, especially transform chains
 
 **Key Extraction Logic**:
-- `target` stores the sourcetype or source pattern (stanza name)
-- `transforms_list` collects all `TRANSFORMS-*` keys in order
-- `sedcmds` collects all `SEDCMD-*` keys
-- Remaining properties in `kv`
+- **Target Identification**: Extract sourcetype or source pattern from stanza header
+  - Sourcetype stanzas: `[app:log]`, `[json:api]`, `[custom:data]`
+  - Source pattern stanzas: `[source::/var/log/special/*.log]`
+  - Default stanza: `[default]` sets defaults for all sourcetypes
+- **TRANSFORMS-* Keys**: Collected into `transforms_list` array in order
+  - Keys like `TRANSFORMS-routing`, `TRANSFORMS-mask`, `TRANSFORMS-cleanup`
+  - Values can be single transform name or comma-separated list: "transform1, transform2"
+  - Order matters: transforms are applied sequentially
+  - Last-wins semantics apply for repeated TRANSFORMS-* keys with same suffix
+- **SEDCMD-* Keys**: Collected into `sedcmds` array in order
+  - Keys like `SEDCMD-remove_sensitive`, `SEDCMD-normalize_dates`
+  - Values are sed-like regex substitution patterns: `s/pattern/replacement/flags`
+  - Order matters: sed commands are applied sequentially
+- **Additional Properties**: All non-extracted fields stored in `kv` JSONB
+  - Examples: `EXTRACT-*`, `REPORT-*`, `LINE_BREAKER`, `SHOULD_LINEMERGE`, `TIME_FORMAT`, `INDEXED_EXTRACTIONS`, `KV_MODE`, etc.
+
+**Projection Implementation**: `app/projections/props.py` - `PropsProjector` class
 
 **Use Cases**:
-- Trace transform chains for a sourcetype
-- Find all props with SEDCMD operations
-- Analyze parsing configuration
+- Trace transform chains for a sourcetype: `SELECT * FROM props WHERE target = 'app:log'`
+- Find all props with SEDCMD operations: `SELECT * FROM props WHERE sedcmds IS NOT NULL`
+- Analyze parsing configuration: `SELECT * FROM props WHERE kv ? 'LINE_BREAKER'`
+- List transform chains: `SELECT target, transforms_list FROM props WHERE transforms_list IS NOT NULL`
+- Query field extraction rules: `SELECT * FROM props WHERE kv ? 'EXTRACT-fields'`
+
+**Edge Cases Handled**:
+- Default stanza (`[default]`) provides defaults for all sourcetypes
+- TRANSFORMS-* keys with comma-separated values are split into individual transforms
+- SEDCMD-* patterns preserved exactly as defined (no parsing of sed syntax)
+- Empty `transforms_list` and `sedcmds` stored as NULL rather than empty array
+- Empty `kv` is stored as NULL rather than empty object
+- Case-insensitive matching for TRANSFORMS-* and SEDCMD-* keys
+- Last-wins semantics preserved from parser for repeated keys
+- Multi-line values with line continuations handled by parser before projection
+- Order preservation critical for both TRANSFORMS and SEDCMD chains
 
 ### transforms
 
@@ -652,6 +678,148 @@ index = default
   "kv": {
     "host": "hf-01.example.com"
   }
+}
+```
+
+### props.conf Stanza Mapping
+
+**Source (default settings):**
+```ini
+[default]
+SHOULD_LINEMERGE = true
+```
+
+**Projection (props table record):**
+```json
+{
+  "run_id": 42,
+  "target": "default",
+  "transforms_list": null,
+  "sedcmds": null,
+  "kv": {
+    "SHOULD_LINEMERGE": "true"
+  }
+}
+```
+
+**Source (sourcetype with transforms):**
+```ini
+[app:log]
+TRANSFORMS-routing = route_to_index
+TRANSFORMS-mask = mask_sensitive_data
+EXTRACT-fields = ^(?P<timestamp>\S+)\s+(?P<level>\w+)\s+(?P<message>.*)$
+LINE_BREAKER = ([\r\n]+)\d{4}-\d{2}-\d{2}
+SHOULD_LINEMERGE = false
+TIME_PREFIX = ^
+TIME_FORMAT = %Y-%m-%d %H:%M:%S
+MAX_TIMESTAMP_LOOKAHEAD = 20
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "target": "app:log",
+  "transforms_list": ["route_to_index", "mask_sensitive_data"],
+  "sedcmds": null,
+  "kv": {
+    "EXTRACT-fields": "^(?P<timestamp>\\S+)\\s+(?P<level>\\w+)\\s+(?P<message>.*)$",
+    "LINE_BREAKER": "([\\r\\n]+)\\d{4}-\\d{2}-\\d{2}",
+    "SHOULD_LINEMERGE": "false",
+    "TIME_PREFIX": "^",
+    "TIME_FORMAT": "%Y-%m-%d %H:%M:%S",
+    "MAX_TIMESTAMP_LOOKAHEAD": "20"
+  }
+}
+```
+
+**Source (source pattern):**
+```ini
+[source::/var/log/special/*.log]
+sourcetype = special:log
+TRANSFORMS-parse = extract_special_fields
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "target": "source::/var/log/special/*.log",
+  "transforms_list": ["extract_special_fields"],
+  "sedcmds": null,
+  "kv": {
+    "sourcetype": "special:log"
+  }
+}
+```
+
+**Source (props with SEDCMD operations):**
+```ini
+[custom:data]
+SEDCMD-remove_sensitive = s/password=\S+/password=***MASKED***/g
+SEDCMD-normalize_dates = s/(\d{2})\/(\d{2})\/(\d{4})/\3-\1-\2/g
+TRANSFORMS-index = route_custom_data
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "target": "custom:data",
+  "transforms_list": ["route_custom_data"],
+  "sedcmds": [
+    "s/password=\\S+/password=***MASKED***/g",
+    "s/(\\d{2})\\/(\\d{2})\\/(\\d{4})/\\3-\\1-\\2/g"
+  ],
+  "kv": null
+}
+```
+
+**Source (complex transform chains):**
+```ini
+[json:api]
+INDEXED_EXTRACTIONS = json
+KV_MODE = json
+TRANSFORMS-routing = route_by_severity, route_by_client
+TRANSFORMS-cleanup = cleanup_fields, normalize_timestamps, add_metadata
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "target": "json:api",
+  "transforms_list": [
+    "route_by_severity",
+    "route_by_client",
+    "cleanup_fields",
+    "normalize_timestamps",
+    "add_metadata"
+  ],
+  "sedcmds": null,
+  "kv": {
+    "INDEXED_EXTRACTIONS": "json",
+    "KV_MODE": "json"
+  }
+}
+```
+
+**Source (repeated TRANSFORMS keys with last-wins):**
+```ini
+[multi:transform]
+TRANSFORMS-first = transform_a
+TRANSFORMS-second = transform_b
+TRANSFORMS-first = transform_a_override
+```
+
+**Projection:**
+```json
+{
+  "run_id": 42,
+  "target": "multi:transform",
+  "transforms_list": ["transform_a_override", "transform_b"],
+  "sedcmds": null,
+  "kv": null
 }
 ```
 

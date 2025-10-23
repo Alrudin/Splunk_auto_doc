@@ -33,16 +33,16 @@ Current state: Planning initiated. Issues for M2 work are being opened from “R
 |-------------------------------------------------------------------------------|:--------:|-----------------------------------|------------------------------------------------------------------------------|
 | Schema migrations: `stanzas` + typed tables + indexes                         |   Yes    | Issue #50 (closed, completed)     | Delivered via Alembic migrations (002/003). Docs updated; unblock downstream |
 | Parser core: files → ordered stanzas (comments, continuation, repeats)        |   Yes    | Issue #52 (this PR, completed)    | Tokenizer/assembler + comprehensive unit tests delivered                     |
-| Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   Partial | Issue #53 (in progress)          | InputProjector completed with 40 tests; others pending                       |
+| Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   Partial | Issue #53 (in progress)          | InputProjector & PropsProjector completed with tests; others exist           |
 | Normalization pipeline: unpack → walk → parse → bulk insert                   |   No     | –                                 | Service orchestration, provenance, performance via bulk insert               |
 | Background worker: Redis + Celery/RQ, parse task with retries                 |   No     | –                                 | Worker service + task wiring + observability                                 |
 | Run status lifecycle: stored → parsing → normalized → complete/failed         |   No     | –                                 | Extend enums/values and transitions; persist summary counts                  |
 | API: trigger parse, status, summary, typed listings                           |   No     | –                                 | Endpoints: POST /runs/{id}/parse, GET /parse-status, GET /summary, listings  |
 | Frontend: Run detail “Parse” button, status polling, counts panel             |   No     | –                                 | Minimal UI to monitor and inspect parsed artifacts                           |
 | Observability: structured logs, metrics, extraction guardrails                |   No     | –                                 | Time metrics, per-file progress logs; safety checks for zip/tar              |
-| Fixtures & tests: golden fixtures, property tests, integration                |   Partial | Issue #53 (in progress)          | Input projection tests complete; other projectors pending                    |
+| Fixtures & tests: golden fixtures, property tests, integration                |   Partial | Issue #53 (in progress)          | Input & Props projection tests complete; other projectors have tests         |
 | CI pipeline updates: parser/unit/property/integration                         |   No     | –                                 | Add jobs; optional performance smoke                                         |
-| Documentation: parser spec, normalization model, ADR-002                      |   Partial | Issue #53 (in progress)          | Normalization model updated for inputs; other types pending                  |
+| Documentation: parser spec, normalization model, ADR-002                      |   Partial | Issue #53 (in progress)          | Normalization model updated for inputs, props; other types documented        |
 
 ---
 
@@ -104,6 +104,7 @@ Note: The Alembic migration work for schema migrations is complete via Issue #50
 
 ## Update Log
 
+- 2025-10-22 (later): Completed PropsProjector implementation (Issue #53 in progress). Added 24 unit tests and 4 integration tests. Updated normalization-model.md with detailed props.conf mapping documentation and examples.
 - 2025-10-22: Completed InputProjector implementation (Issue #53 in progress). Added 40 tests (32 unit, 8 integration). Updated normalization-model.md with detailed inputs mapping documentation.
 - 2025-10-19 (later): Completed parser core implementation (Issue #52). Added comprehensive tests and documentation.
 - 2025-10-19: Marked schema migrations as Present=Yes and noted Issue #50 closed/completed.
