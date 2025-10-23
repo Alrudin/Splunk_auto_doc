@@ -53,7 +53,8 @@ class Settings(BaseSettings):
 
     # Worker
     redis_url: str = Field(
-        default="redis://localhost:6379/0", description="Redis connection URL for Celery"
+        default="redis://localhost:6379/0",
+        description="Redis connection URL for Celery",
     )
     celery_broker_url: str = Field(
         default="redis://localhost:6379/0", description="Celery broker URL"

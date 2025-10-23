@@ -116,9 +116,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
             error_msg = f"No files found for run {run_id}"
             logger.error(error_msg)
             run.status = IngestionStatus.FAILED
-            run.notes = (
-                f"{run.notes}\n{error_msg}" if run.notes else error_msg
-            )
+            run.notes = f"{run.notes}\n{error_msg}" if run.notes else error_msg
             db.commit()
             raise ValueError(error_msg)
 
@@ -189,7 +187,9 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                                 file_id=file_record.id,
                                 conf_type=conf_type,
                                 name=stanza.name,
-                                app=stanza.provenance.app if stanza.provenance else None,
+                                app=stanza.provenance.app
+                                if stanza.provenance
+                                else None,
                                 scope=stanza.provenance.scope
                                 if stanza.provenance
                                 else None,
@@ -261,13 +261,9 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
             if run:
                 run.status = IngestionStatus.FAILED
                 error_msg = f"Parsing failed after {self.max_retries} retries: {str(e)}"
-                run.notes = (
-                    f"{run.notes}\n{error_msg}" if run.notes else error_msg
-                )
+                run.notes = f"{run.notes}\n{error_msg}" if run.notes else error_msg
                 db.commit()
-                logger.error(
-                    f"Marked run {run_id} as FAILED after exhausting retries"
-                )
+                logger.error(f"Marked run {run_id} as FAILED after exhausting retries")
 
         # Re-raise to trigger retry
         raise

@@ -1,10 +1,7 @@
 """Integration tests for worker service and parsing tasks."""
 
-import io
 import tarfile
-import tempfile
 import time
-from pathlib import Path
 
 import pytest
 
@@ -13,8 +10,6 @@ import tests.ensure_models  # noqa: F401
 
 # Try to import dependencies
 try:
-    from celery.result import AsyncResult
-
     from app.core.db import Base, get_db
     from app.main import create_app
     from app.models.file import File as FileModel
@@ -23,6 +18,7 @@ try:
     from app.storage import get_storage_backend
     from app.worker.celery_app import celery_app
     from app.worker.tasks import parse_run
+    from celery.result import AsyncResult
     from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -396,7 +392,9 @@ def wait_for_run_status(
             return data
 
         if data["status"] == "failed":
-            raise Exception(f"Run {run_id} failed: {data.get('notes', 'Unknown error')}")
+            raise Exception(
+                f"Run {run_id} failed: {data.get('notes', 'Unknown error')}"
+            )
 
         if time.time() - start_time > timeout:
             raise TimeoutError(

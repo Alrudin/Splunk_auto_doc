@@ -26,10 +26,10 @@ async def worker_health() -> dict[str, Any]:
     try:
         # Inspect active workers
         inspect = celery_app.control.inspect()
-        
+
         # Get active workers
         active_workers = inspect.active()
-        
+
         if not active_workers:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -38,14 +38,16 @@ async def worker_health() -> dict[str, Any]:
 
         # Get worker stats
         stats = inspect.stats()
-        
+
         # Count total workers
         worker_count = len(active_workers) if active_workers else 0
-        
+
         # Get active tasks count
-        total_active_tasks = sum(
-            len(tasks) for tasks in active_workers.values()
-        ) if active_workers else 0
+        total_active_tasks = (
+            sum(len(tasks) for tasks in active_workers.values())
+            if active_workers
+            else 0
+        )
 
         return {
             "status": "healthy",
@@ -75,21 +77,21 @@ async def get_task_status(task_id: str) -> dict[str, Any]:
     """
     try:
         result = AsyncResult(task_id, app=celery_app)
-        
+
         response = {
             "task_id": task_id,
             "status": result.status,
             "ready": result.ready(),
             "successful": result.successful() if result.ready() else None,
         }
-        
+
         # Include result if task is complete
         if result.ready():
             if result.successful():
                 response["result"] = result.result
             else:
                 response["error"] = str(result.info)
-        
+
         return response
 
     except Exception as e:
