@@ -98,8 +98,24 @@ TIME_FORMAT = %Y-%m-%d %H:%M:%S
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not DEPENDENCIES_AVAILABLE, reason="PostgreSQL not available for integration test"
+)
 def test_parse_run_task_success(test_db, test_storage, sample_conf_archive):
     """Test successful parse_run task execution."""
+    # Skip if PostgreSQL is not available
+    try:
+        import psycopg2
+        psycopg2.connect(
+            host='localhost',
+            database='splunk_auto_doc', 
+            user='postgres',
+            password='postgres',
+            port=5432
+        ).close()
+    except (psycopg2.OperationalError, ImportError):
+        pytest.skip("PostgreSQL server not available")
+    
     # Create ingestion run
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -131,8 +147,8 @@ def test_parse_run_task_success(test_db, test_storage, sample_conf_archive):
     task = DatabaseTask()
     task._db = test_db
 
-    # Mock the task to use our test DB
-    result = parse_run(task, run.id)
+    # Mock the task to use our test DB - call the run method directly
+    result = parse_run.run(run.id)
 
     # Verify results
     assert result["status"] == "completed"
@@ -158,8 +174,24 @@ def test_parse_run_task_success(test_db, test_storage, sample_conf_archive):
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not DEPENDENCIES_AVAILABLE, reason="PostgreSQL not available for integration test"
+)
 def test_parse_run_task_not_found(test_db):
     """Test parse_run task with non-existent run."""
+    # Skip if PostgreSQL is not available
+    try:
+        import psycopg2
+        psycopg2.connect(
+            host='localhost',
+            database='splunk_auto_doc', 
+            user='postgres',
+            password='postgres',
+            port=5432
+        ).close()
+    except (psycopg2.OperationalError, ImportError):
+        pytest.skip("PostgreSQL server not available")
+    
     from app.worker.tasks import DatabaseTask
 
     task = DatabaseTask()
@@ -167,12 +199,28 @@ def test_parse_run_task_not_found(test_db):
 
     # Should raise ValueError for non-existent run
     with pytest.raises(ValueError, match="not found"):
-        parse_run(task, 999)
+        parse_run.run(999)
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not DEPENDENCIES_AVAILABLE, reason="PostgreSQL not available for integration test"
+)
 def test_parse_run_task_already_completed(test_db):
     """Test parse_run task with already completed run (idempotent)."""
+    # Skip if PostgreSQL is not available
+    try:
+        import psycopg2
+        psycopg2.connect(
+            host='localhost',
+            database='splunk_auto_doc', 
+            user='postgres',
+            password='postgres',
+            port=5432
+        ).close()
+    except (psycopg2.OperationalError, ImportError):
+        pytest.skip("PostgreSQL server not available")
+    
     # Create completed run
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -188,15 +236,31 @@ def test_parse_run_task_already_completed(test_db):
     task._db = test_db
 
     # Should return early without processing
-    result = parse_run(task, run.id)
+    result = parse_run.run(run.id)
 
     assert result["status"] == "already_completed"
     assert result["run_id"] == run.id
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not DEPENDENCIES_AVAILABLE, reason="PostgreSQL not available for integration test"
+)
 def test_parse_run_task_no_files(test_db):
     """Test parse_run task with run that has no files."""
+    # Skip if PostgreSQL is not available
+    try:
+        import psycopg2
+        psycopg2.connect(
+            host='localhost',
+            database='splunk_auto_doc', 
+            user='postgres',
+            password='postgres',
+            port=5432
+        ).close()
+    except (psycopg2.OperationalError, ImportError):
+        pytest.skip("PostgreSQL server not available")
+    
     # Create run without files
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -213,7 +277,7 @@ def test_parse_run_task_no_files(test_db):
 
     # Should raise ValueError for no files
     with pytest.raises(ValueError, match="No files found"):
-        parse_run(task, run.id)
+        parse_run.run(run.id)
 
     # Verify run marked as failed
     test_db.refresh(run)
@@ -246,8 +310,20 @@ def test_worker_health_endpoint():
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not DEPENDENCIES_AVAILABLE, reason="Redis not available for Celery backend"
+)
 def test_task_status_endpoint():
     """Test task status endpoint."""
+    import redis
+    
+    # Skip if Redis is not available
+    try:
+        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        redis_client.ping()
+    except (redis.ConnectionError, ConnectionRefusedError):
+        pytest.skip("Redis server not available")
+    
     app = create_app()
     client = TestClient(app)
 
