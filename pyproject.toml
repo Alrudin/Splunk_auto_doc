@@ -137,6 +137,15 @@ module = "mock_server"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
+[[tool.mypy.overrides]]
+module = [
+    "celery",
+    "celery.*",
+    "redis",
+    "redis.*",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = [
