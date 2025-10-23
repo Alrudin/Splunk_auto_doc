@@ -106,7 +106,9 @@ class PropsProjector:
                     # Handle both single and comma-separated transform names
                     # Also strip leading backslashes from line continuation
                     transform_names = [
-                        name.strip().lstrip("\\") for name in str(value).split(",") if name.strip()
+                        name.strip().lstrip("\\")
+                        for name in str(value).split(",")
+                        if name.strip()
                     ]
                     transforms.extend(transform_names)
 
