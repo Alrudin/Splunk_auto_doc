@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from app.api.v1.health import router as health_router
 from app.api.v1.runs import router as runs_router
 from app.api.v1.uploads import router as uploads_router
+from app.api.v1.worker import router as worker_router
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/v1", tags=["health"])
     app.include_router(uploads_router, prefix="/v1", tags=["uploads"])
     app.include_router(runs_router, prefix="/v1", tags=["runs"])
+    app.include_router(worker_router, prefix="/v1", tags=["worker"])
     app.include_router(legacy_health_router, prefix="/health", tags=["health-legacy"])
 
     return app

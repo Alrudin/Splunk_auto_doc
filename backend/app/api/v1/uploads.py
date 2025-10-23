@@ -257,6 +257,23 @@ async def upload_file(
             extra={"run_id": run.id, "status": "stored"},
         )
 
+        # Enqueue parsing task asynchronously
+        try:
+            from app.worker.tasks import parse_run
+
+            task = parse_run.delay(run.id)
+            logger.info(
+                "Enqueued parsing task",
+                extra={"run_id": run.id, "task_id": task.id},
+            )
+        except Exception as e:
+            # Log error but don't fail the upload - parsing can be retried manually
+            logger.error(
+                "Failed to enqueue parsing task",
+                extra={"run_id": run.id, "error": str(e)},
+                exc_info=True,
+            )
+
         return IngestionRunResponse.model_validate(run)
 
     except StorageError as e:
