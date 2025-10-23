@@ -106,16 +106,17 @@ def test_parse_run_task_success(test_db, test_storage, sample_conf_archive):
     # Skip if PostgreSQL is not available
     try:
         import psycopg2
+
         psycopg2.connect(
-            host='localhost',
-            database='splunk_auto_doc', 
-            user='postgres',
-            password='postgres',
-            port=5432
+            host="localhost",
+            database="splunk_auto_doc",
+            user="postgres",
+            password="postgres",
+            port=5432,
         ).close()
     except (psycopg2.OperationalError, ImportError):
         pytest.skip("PostgreSQL server not available")
-    
+
     # Create ingestion run
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -182,16 +183,17 @@ def test_parse_run_task_not_found(test_db):
     # Skip if PostgreSQL is not available
     try:
         import psycopg2
+
         psycopg2.connect(
-            host='localhost',
-            database='splunk_auto_doc', 
-            user='postgres',
-            password='postgres',
-            port=5432
+            host="localhost",
+            database="splunk_auto_doc",
+            user="postgres",
+            password="postgres",
+            port=5432,
         ).close()
     except (psycopg2.OperationalError, ImportError):
         pytest.skip("PostgreSQL server not available")
-    
+
     from app.worker.tasks import DatabaseTask
 
     task = DatabaseTask()
@@ -211,16 +213,17 @@ def test_parse_run_task_already_completed(test_db):
     # Skip if PostgreSQL is not available
     try:
         import psycopg2
+
         psycopg2.connect(
-            host='localhost',
-            database='splunk_auto_doc', 
-            user='postgres',
-            password='postgres',
-            port=5432
+            host="localhost",
+            database="splunk_auto_doc",
+            user="postgres",
+            password="postgres",
+            port=5432,
         ).close()
     except (psycopg2.OperationalError, ImportError):
         pytest.skip("PostgreSQL server not available")
-    
+
     # Create completed run
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -251,16 +254,17 @@ def test_parse_run_task_no_files(test_db):
     # Skip if PostgreSQL is not available
     try:
         import psycopg2
+
         psycopg2.connect(
-            host='localhost',
-            database='splunk_auto_doc', 
-            user='postgres',
-            password='postgres',
-            port=5432
+            host="localhost",
+            database="splunk_auto_doc",
+            user="postgres",
+            password="postgres",
+            port=5432,
         ).close()
     except (psycopg2.OperationalError, ImportError):
         pytest.skip("PostgreSQL server not available")
-    
+
     # Create run without files
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -316,14 +320,14 @@ def test_worker_health_endpoint():
 def test_task_status_endpoint():
     """Test task status endpoint."""
     import redis
-    
+
     # Skip if Redis is not available
     try:
-        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        redis_client = redis.Redis(host="localhost", port=6379, db=0)
         redis_client.ping()
     except (redis.ConnectionError, ConnectionRefusedError):
         pytest.skip("Redis server not available")
-    
+
     app = create_app()
     client = TestClient(app)
 
