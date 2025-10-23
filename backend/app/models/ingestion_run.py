@@ -34,8 +34,9 @@ class IngestionStatus(str, enum.Enum):
 
     PENDING = "pending"  # Run created, file upload in progress
     STORED = "stored"  # File stored successfully
-    FAILED = "failed"  # Upload or storage failed
-    COMPLETE = "complete"  # Fully processed (future milestone)
+    PARSING = "parsing"  # Parsing job enqueued or in progress
+    FAILED = "failed"  # Upload, storage, or parsing failed
+    COMPLETE = "complete"  # Fully processed
 
 
 class IngestionRun(Base):

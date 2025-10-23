@@ -51,6 +51,18 @@ class Settings(BaseSettings):
         default="text", description="Log output format (text or json)"
     )
 
+    # Worker
+    redis_url: str = Field(
+        default="redis://localhost:6379/0",
+        description="Redis connection URL for Celery",
+    )
+    celery_broker_url: str = Field(
+        default="redis://localhost:6379/0", description="Celery broker URL"
+    )
+    celery_result_backend: str = Field(
+        default="redis://localhost:6379/0", description="Celery result backend URL"
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
