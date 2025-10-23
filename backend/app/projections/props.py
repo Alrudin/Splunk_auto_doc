@@ -104,8 +104,9 @@ class PropsProjector:
                 if value:
                     # Split by comma and strip whitespace
                     # Handle both single and comma-separated transform names
+                    # Also strip leading backslashes from line continuation
                     transform_names = [
-                        name.strip() for name in str(value).split(",") if name.strip()
+                        name.strip().lstrip("\\") for name in str(value).split(",") if name.strip()
                     ]
                     transforms.extend(transform_names)
 
