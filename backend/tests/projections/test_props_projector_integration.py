@@ -56,11 +56,7 @@ class TestGoldenFixtures:
 
         # Verify source pattern
         source_pattern = next(
-            (
-                p
-                for p in projections
-                if p["target"] == "source::/var/log/special/*.log"
-            ),
+            (p for p in projections if p["target"] == "source::/var/log/special/*.log"),
             None,
         )
         assert source_pattern is not None
@@ -152,7 +148,9 @@ class TestGoldenFixtures:
         assert custom_data_stanza is not None
 
         # Verify order in parsed stanza
-        sedcmd_keys = [k for k in custom_data_stanza.key_order if k.startswith("SEDCMD-")]
+        sedcmd_keys = [
+            k for k in custom_data_stanza.key_order if k.startswith("SEDCMD-")
+        ]
         assert len(sedcmd_keys) == 2
 
         # Project and verify order preserved
@@ -163,12 +161,9 @@ class TestGoldenFixtures:
         assert projection["sedcmds"] is not None
         assert len(projection["sedcmds"]) == 2
         # First SEDCMD-remove_sensitive, then SEDCMD-normalize_dates
+        assert projection["sedcmds"][0] == "s/password=\\S+/password=***MASKED***/g"
         assert (
-            projection["sedcmds"][0] == "s/password=\\S+/password=***MASKED***/g"
-        )
-        assert (
-            projection["sedcmds"][1]
-            == "s/(\\d{2})\\/(\\d{2})\\/(\\d{4})/\\3-\\1-\\2/g"
+            projection["sedcmds"][1] == "s/(\\d{2})\\/(\\d{2})\\/(\\d{4})/\\3-\\1-\\2/g"
         )
 
     def test_last_wins_semantics(self):

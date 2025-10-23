@@ -6,7 +6,7 @@ from pathlib import Path
 # Add backend to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.parser.types import ParsedStanza, Provenance
+from app.parser.types import ParsedStanza
 from app.projections.props import PropsProjector
 
 
@@ -331,7 +331,9 @@ class TestProjection:
         assert result["target"] == "app:log"
         assert result["transforms_list"] == ["route_to_index", "mask_sensitive_data"]
         assert result["sedcmds"] is None
-        assert result["kv"]["EXTRACT-fields"] == "^(?P<timestamp>\\S+)\\s+(?P<level>\\w+)"
+        assert (
+            result["kv"]["EXTRACT-fields"] == "^(?P<timestamp>\\S+)\\s+(?P<level>\\w+)"
+        )
 
     def test_source_pattern_projection(self):
         """Test projection of source pattern."""
