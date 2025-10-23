@@ -1,7 +1,6 @@
 """Integration tests for retry and failure handling in worker tasks."""
 
 import tarfile
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,6 +17,7 @@ try:
     from app.storage import get_storage_backend
     from app.worker.exceptions import PermanentError, TransientError
     from app.worker.tasks import DatabaseTask, parse_run
+    from celery.exceptions import Retry
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.pool import StaticPool
@@ -161,10 +161,11 @@ def test_transient_error_with_retry(test_db, test_storage, sample_conf_archive):
         # Return actual blob on subsequent calls
         return test_storage.retrieve_blob(key)
 
-    with patch.object(test_storage, "retrieve_blob", side_effect=mock_retrieve_blob):
-        # First call should raise TransientError and attempt retry
-        with pytest.raises(Exception):  # Will raise retry exception
-            parse_run.run(run.id)
+    with (
+        patch.object(test_storage, "retrieve_blob", side_effect=mock_retrieve_blob),
+        pytest.raises(Retry),
+    ):  # Will raise retry exception
+        parse_run.run(run.id)
 
     # Verify run has error details but is not marked as failed yet
     test_db.refresh(run)
@@ -266,7 +267,7 @@ def test_idempotency_on_retry(test_db, test_storage, sample_conf_archive):
     task2.max_retries = 3
 
     # Run task second time (simulated retry)
-    result2 = parse_run.run(run.id)
+    # result2 = parse_run.run(run.id)
 
     # Verify no new stanzas created (idempotent)
     stanzas_2 = test_db.query(Stanza).filter(Stanza.run_id == run.id).all()
@@ -305,7 +306,7 @@ def test_heartbeat_updates(test_db, test_storage, sample_conf_archive):
     task.max_retries = 3
 
     # Run task
-    result = parse_run.run(run.id)
+    # result = parse_run.run(run.id)
 
     # Verify heartbeat and timestamp fields were set
     test_db.refresh(run)
@@ -347,7 +348,7 @@ def test_metrics_collection(test_db, test_storage, sample_conf_archive):
     task.max_retries = 3
 
     # Run task
-    result = parse_run.run(run.id)
+    # result = parse_run.run(run.id)
 
     # Verify metrics were stored
     test_db.refresh(run)

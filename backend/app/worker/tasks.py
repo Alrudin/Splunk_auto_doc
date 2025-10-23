@@ -85,16 +85,19 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         TransientError: For temporary errors (will retry with backoff)
     """
     start_time = time.time()
-    logger.info(f"Starting parse_run task for run_id={run_id}", extra={"run_id": run_id, "task_id": self.request.id})
+    logger.info(
+        f"Starting parse_run task for run_id={run_id}",
+        extra={"run_id": run_id, "task_id": self.request.id},
+    )
 
     db = self.db
     settings = get_settings()
-    
+
     # Heartbeat interval (update every 30 seconds for long-running tasks)
     last_heartbeat = time.time()
     heartbeat_interval = 30
-    
-    def update_heartbeat():
+
+    def update_heartbeat() -> None:
         """Update heartbeat timestamp for visibility timeout."""
         nonlocal last_heartbeat
         now = time.time()
@@ -103,6 +106,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                 run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
                 if run:
                     from datetime import datetime
+
                     run.last_heartbeat = datetime.utcnow()
                     db.commit()
                     last_heartbeat = now
@@ -120,9 +124,10 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
 
         # Update task tracking
         from datetime import datetime
+
         run.task_id = self.request.id
         run.retry_count = self.request.retries
-        
+
         # Check if already completed (idempotency)
         if run.status == IngestionStatus.COMPLETE:
             logger.info(f"Run {run_id} already completed, skipping")
@@ -154,7 +159,9 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                 storage_path=settings.storage_path
                 if settings.storage_backend == "local"
                 else None,
-                s3_bucket=settings.s3_bucket if settings.storage_backend == "s3" else None,
+                s3_bucket=settings.s3_bucket
+                if settings.storage_backend == "s3"
+                else None,
                 s3_endpoint_url=settings.s3_endpoint_url
                 if settings.storage_backend == "s3"
                 else None,
@@ -176,7 +183,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         # Process each uploaded file
         for file_record in files:
             update_heartbeat()
-            
+
             logger.info(
                 f"Processing file {file_record.path} (id={file_record.id})",
                 extra={"run_id": run_id, "file_id": file_record.id},
@@ -213,7 +220,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                 parser = ConfParser()
                 for conf_file in extracted_files:
                     update_heartbeat()
-                    
+
                     if not conf_file.name.endswith(".conf"):
                         continue
 
@@ -227,17 +234,22 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                         # Persist stanzas (idempotent - check if already exists)
                         for stanza in stanzas:
                             # Check if stanza already exists to maintain idempotency
-                            existing = db.query(Stanza).filter(
-                                Stanza.run_id == run_id,
-                                Stanza.file_id == file_record.id,
-                                Stanza.name == stanza.name,
-                                Stanza.source_path == (
-                                    stanza.provenance.source_path
-                                    if stanza.provenance
-                                    else str(conf_file)
-                                ),
-                            ).first()
-                            
+                            existing = (
+                                db.query(Stanza)
+                                .filter(
+                                    Stanza.run_id == run_id,
+                                    Stanza.file_id == file_record.id,
+                                    Stanza.name == stanza.name,
+                                    Stanza.source_path
+                                    == (
+                                        stanza.provenance.source_path
+                                        if stanza.provenance
+                                        else str(conf_file)
+                                    ),
+                                )
+                                .first()
+                            )
+
                             if not existing:
                                 stanza_record = Stanza(
                                     run_id=run_id,
@@ -292,7 +304,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         # Update run status to complete
         run.status = IngestionStatus.COMPLETE
         run.completed_at = datetime.utcnow()
-        
+
         # Store metrics
         duration = time.time() - start_time
         run.metrics = {
@@ -302,7 +314,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
             "parse_errors": len(parse_errors),
             "retry_count": self.request.retries,
         }
-        
+
         db.commit()
 
         result = {
@@ -326,7 +338,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         duration = time.time() - start_time
         error_msg = str(e)
         error_trace = traceback.format_exc()
-        
+
         logger.error(
             f"Permanent error in parse_run task for run_id={run_id}: {error_msg}",
             extra={"run_id": run_id, "duration_seconds": duration},
@@ -337,6 +349,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
         if run:
             from datetime import datetime
+
             run.status = IngestionStatus.FAILED
             run.error_message = f"Permanent error: {error_msg}"
             run.error_traceback = error_trace
@@ -357,10 +370,14 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         duration = time.time() - start_time
         error_msg = str(e)
         error_trace = traceback.format_exc()
-        
+
         logger.warning(
             f"Transient error in parse_run task for run_id={run_id}: {error_msg}",
-            extra={"run_id": run_id, "duration_seconds": duration, "retry": self.request.retries},
+            extra={
+                "run_id": run_id,
+                "duration_seconds": duration,
+                "retry": self.request.retries,
+            },
             exc_info=True,
         )
 
@@ -368,7 +385,10 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
         if run:
             from datetime import datetime
-            run.error_message = f"Transient error (retry {self.request.retries}): {error_msg}"
+
+            run.error_message = (
+                f"Transient error (retry {self.request.retries}): {error_msg}"
+            )
             run.error_traceback = error_trace
             run.last_heartbeat = datetime.utcnow()
             db.commit()
@@ -376,16 +396,21 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         # Retry with exponential backoff if we haven't exceeded max retries
         if self.request.retries < self.max_retries:
             # Calculate backoff: 60s, 180s, 600s (1min, 3min, 10min)
-            countdown = min(60 * (3 ** self.request.retries), 600)
-            logger.info(f"Retrying run {run_id} in {countdown}s (attempt {self.request.retries + 1}/{self.max_retries})")
-            raise self.retry(exc=e, countdown=countdown)
+            countdown = min(60 * (3**self.request.retries), 600)
+            logger.info(
+                f"Retrying run {run_id} in {countdown}s (attempt {self.request.retries + 1}/{self.max_retries})"
+            )
+            raise self.retry(exc=e, countdown=countdown) from e
         else:
             # Exhausted retries - mark as failed
             logger.error(f"Exhausted retries for run {run_id}")
             if run:
                 from datetime import datetime
+
                 run.status = IngestionStatus.FAILED
-                run.error_message = f"Failed after {self.max_retries} retries: {error_msg}"
+                run.error_message = (
+                    f"Failed after {self.max_retries} retries: {error_msg}"
+                )
                 run.completed_at = datetime.utcnow()
                 run.metrics = {
                     "duration_seconds": duration,
@@ -399,10 +424,11 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         # Task exceeded soft time limit
         duration = time.time() - start_time
         logger.error(f"Task exceeded soft time limit for run_id={run_id}")
-        
+
         run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
         if run:
             from datetime import datetime
+
             run.status = IngestionStatus.FAILED
             run.error_message = "Task exceeded time limit"
             run.completed_at = datetime.utcnow()
@@ -418,25 +444,30 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         # Database errors are usually transient
         duration = time.time() - start_time
         error_msg = str(e)
-        
+
         logger.error(
             f"Database error in parse_run task for run_id={run_id}: {error_msg}",
             extra={"run_id": run_id, "duration_seconds": duration},
             exc_info=True,
         )
-        
+
         # Retry database errors with backoff
         if self.request.retries < self.max_retries:
-            countdown = min(60 * (3 ** self.request.retries), 600)
-            raise self.retry(exc=TransientError(f"Database error: {error_msg}"), countdown=countdown)
+            countdown = min(60 * (3**self.request.retries), 600)
+            raise self.retry(
+                exc=TransientError(f"Database error: {error_msg}"), countdown=countdown
+            ) from e
         else:
             # Mark as failed if retries exhausted
             try:
                 run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
                 if run:
                     from datetime import datetime
+
                     run.status = IngestionStatus.FAILED
-                    run.error_message = f"Database error after {self.max_retries} retries: {error_msg}"
+                    run.error_message = (
+                        f"Database error after {self.max_retries} retries: {error_msg}"
+                    )
                     run.error_traceback = traceback.format_exc()
                     run.completed_at = datetime.utcnow()
                     db.commit()
@@ -449,7 +480,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         duration = time.time() - start_time
         error_msg = str(e)
         error_trace = traceback.format_exc()
-        
+
         logger.error(
             f"Unexpected error in parse_run task for run_id={run_id}: {error_msg}",
             extra={"run_id": run_id, "duration_seconds": duration},
@@ -461,8 +492,11 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
             run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
             if run:
                 from datetime import datetime
+
                 run.status = IngestionStatus.FAILED
-                run.error_message = f"Unexpected error after {self.max_retries} retries: {error_msg}"
+                run.error_message = (
+                    f"Unexpected error after {self.max_retries} retries: {error_msg}"
+                )
                 run.error_traceback = error_trace
                 run.completed_at = datetime.utcnow()
                 run.metrics = {
@@ -475,8 +509,11 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
             raise
         else:
             # Retry with backoff
-            countdown = min(60 * (3 ** self.request.retries), 600)
-            raise self.retry(exc=TransientError(f"Unexpected error: {error_msg}"), countdown=countdown)
+            countdown = min(60 * (3**self.request.retries), 600)
+            raise self.retry(
+                exc=TransientError(f"Unexpected error: {error_msg}"),
+                countdown=countdown,
+            ) from e
 
 
 def _extract_archive(archive_path: Path, extract_to: Path) -> list[Path]:

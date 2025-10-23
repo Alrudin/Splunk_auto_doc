@@ -1,6 +1,7 @@
 """Pydantic schemas for ingestion run API models."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -32,11 +33,15 @@ class IngestionRunResponse(IngestionRunBase):
     task_id: str | None = Field(None, description="Celery task ID for async processing")
     retry_count: int = Field(default=0, description="Number of retry attempts")
     error_message: str | None = Field(None, description="Error message if failed")
-    error_traceback: str | None = Field(None, description="Full error traceback if failed")
-    last_heartbeat: datetime | None = Field(None, description="Last heartbeat timestamp")
+    error_traceback: str | None = Field(
+        None, description="Full error traceback if failed"
+    )
+    last_heartbeat: datetime | None = Field(
+        None, description="Last heartbeat timestamp"
+    )
     started_at: datetime | None = Field(None, description="Task start timestamp")
     completed_at: datetime | None = Field(None, description="Task completion timestamp")
-    metrics: dict | None = Field(None, description="Task execution metrics")
+    metrics: dict[str, Any] | None = Field(None, description="Task execution metrics")
 
 
 class IngestionRunListResponse(BaseModel):

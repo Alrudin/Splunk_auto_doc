@@ -168,8 +168,9 @@ async def get_worker_metrics(db: Session = Depends(get_db)) -> dict[str, Any]:
         dict: Aggregated metrics
     """
     from sqlalchemy import func
+
     from app.models.ingestion_run import IngestionStatus
-    
+
     try:
         # Get job counts by status
         status_counts = (
@@ -222,7 +223,9 @@ async def get_worker_metrics(db: Session = Depends(get_db)) -> dict[str, Any]:
                     "run_id": run.id,
                     "error_message": run.error_message,
                     "retry_count": run.retry_count,
-                    "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+                    "completed_at": run.completed_at.isoformat()
+                    if run.completed_at
+                    else None,
                 }
                 for run in failed_runs
             ],

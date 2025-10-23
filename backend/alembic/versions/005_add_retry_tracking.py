@@ -8,8 +8,8 @@ Create Date: 2025-10-23 18:52:00.000000
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "005"
@@ -25,13 +25,13 @@ def upgrade() -> None:
         "ingestion_runs",
         sa.Column("task_id", sa.String(length=255), nullable=True),
     )
-    
+
     # Add retry tracking
     op.add_column(
         "ingestion_runs",
         sa.Column("retry_count", sa.Integer(), nullable=False, server_default="0"),
     )
-    
+
     # Add error details
     op.add_column(
         "ingestion_runs",
@@ -41,7 +41,7 @@ def upgrade() -> None:
         "ingestion_runs",
         sa.Column("error_traceback", sa.Text(), nullable=True),
     )
-    
+
     # Add timestamp tracking
     op.add_column(
         "ingestion_runs",
@@ -55,13 +55,13 @@ def upgrade() -> None:
         "ingestion_runs",
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
     )
-    
+
     # Add metrics tracking (JSON field)
     op.add_column(
         "ingestion_runs",
         sa.Column("metrics", sa.JSON(), nullable=True),
     )
-    
+
     # Create index on task_id for faster lookups
     op.create_index(
         "idx_ingestion_runs_task_id",
