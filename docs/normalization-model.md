@@ -1210,3 +1210,104 @@ server = new1.example.com:9997, new2.example.com:9997
 - Input Projector Implementation: `backend/app/projections/inputs.py`
 - Transform Projector Implementation: `backend/app/projections/transforms.py`
 - Index Projector Implementation: `backend/app/projections/indexes.py`
+
+## Processing Model and Error Handling
+
+### Ingestion Run Lifecycle
+
+The `ingestion_runs` table tracks the complete lifecycle of configuration uploads from initial creation through parsing completion or failure.
+
+#### Status Flow
+
+```
+PENDING → STORED → PARSING → COMPLETE
+                        ↓
+                     FAILED
+```
+
+#### Enhanced Tracking Fields
+
+The ingestion run model includes comprehensive tracking for retry and error handling:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `task_id` | VARCHAR(255) | Celery task ID for async processing |
+| `retry_count` | INTEGER | Number of retry attempts (0-3) |
+| `error_message` | TEXT | High-level error description |
+| `error_traceback` | TEXT | Full Python stack trace for debugging |
+| `last_heartbeat` | TIMESTAMP | Last activity timestamp for timeout detection |
+| `started_at` | TIMESTAMP | Task execution start time |
+| `completed_at` | TIMESTAMP | Task completion time (success or failure) |
+| `metrics` | JSONB | Execution metrics (duration, counts, error type) |
+
+#### Error Classification
+
+Parsing errors are classified into two categories:
+
+**Permanent Errors** (no retry):
+- Malformed or corrupted archives
+- Unsupported archive formats (not .tar.gz, .tar, or .zip)
+- Missing required data (no files in run)
+- Invalid configuration structure
+
+**Transient Errors** (retry with exponential backoff):
+- Network connectivity issues
+- Database connection timeouts
+- Storage backend temporary failures
+- Resource unavailability
+
+#### Retry Behavior
+
+- **Max Retries**: 3 attempts
+- **Backoff Schedule**: 60s, 180s, 600s (exponential)
+- **Idempotency**: Tasks can be safely retried without creating duplicate stanzas
+- **Heartbeat**: Long-running tasks update `last_heartbeat` every 30 seconds
+
+#### Metrics Collection
+
+The `metrics` JSONB field stores execution data:
+
+```json
+{
+  "files_parsed": 15,
+  "stanzas_created": 234,
+  "duration_seconds": 45.5,
+  "parse_errors": 2,
+  "retry_count": 1,
+  "error_type": "transient"
+}
+```
+
+### Idempotency Guarantees
+
+The parsing process is designed to be idempotent:
+
+1. **Completed Run Check**: Tasks skip processing if run status is already `COMPLETE`
+2. **Duplicate Detection**: Stanzas are checked for existence before insertion
+3. **Atomic Operations**: Database commits occur only after successful parsing
+4. **Retry Safety**: Failed tasks can be retried without side effects
+
+### Error Recovery
+
+**For Failed Runs**:
+1. Review error details via `/v1/worker/runs/{run_id}/status`
+2. Check `error_message` for high-level description
+3. Examine `error_traceback` for detailed debugging
+4. If permanent error: fix input data and re-upload
+5. If transient error exhausted: verify infrastructure and retry
+
+**Monitoring Failed Jobs**:
+```bash
+# Get recent failures
+curl http://localhost:8000/v1/worker/metrics
+
+# Check specific run
+curl http://localhost:8000/v1/worker/runs/{run_id}/status
+```
+
+### Performance Considerations
+
+- **Heartbeat Overhead**: Minimal - updates only every 30s
+- **Metrics Storage**: JSONB indexed for efficient queries
+- **Retry Impact**: Exponential backoff prevents thundering herd
+- **Idempotency Cost**: Duplicate check uses indexed fields (run_id, file_id, name, source_path)
