@@ -9,21 +9,25 @@ Splunk Auto Doc is a web application that parses and analyzes Splunk configurati
 
 Key features:
 - **Configuration Parsing**: Extracts and normalizes Splunk configuration files (inputs.conf, props.conf, transforms.conf, etc.)
-- **Serverclass Resolution**: Resolves deployment server configurations to determine host memberships and app assignments
-- **Data Flow Analysis**: Traces data routing from inputs through transforms to final destinations
-- **Interactive Visualization**: Provides web-based exploration of configuration relationships and data paths
+- **Asynchronous Processing**: Background workers handle parsing jobs with retry logic and progress tracking
+- **Provenance Tracking**: Full metadata capture for all parsed configurations (app, scope, layer, file)
+- **Serverclass Resolution**: Resolves deployment server configurations to determine host memberships and app assignments (future)
+- **Data Flow Analysis**: Traces data routing from inputs through transforms to final destinations (future)
+- **Interactive Visualization**: Provides web-based exploration of configuration relationships and data paths (future)
 - **Version Tracking**: Maintains historical snapshots of configuration changes through ingestion runs
 
-## Architecture (Milestone 1)
+## Architecture (Milestone 2)
 
 **Current Milestone Scope:**
-Milestone 1 establishes the foundation for configuration ingestion and storage. The architecture focuses on:
+Milestone 2 builds on the foundation with asynchronous parsing and normalization. The architecture now includes:
 
 1. **Upload Ingestion**: Accept and validate Splunk configuration archives (tar/zip)
 2. **Blob Storage**: Store raw configuration files in object storage (MinIO or local filesystem)
-3. **Metadata Tracking**: Record ingestion runs and file metadata in PostgreSQL
-4. **REST API**: Provide endpoints for upload, listing, and retrieval
-5. **Web Interface**: React-based UI for uploading files and viewing ingestion runs
+3. **Background Worker**: Asynchronous parsing with Celery and Redis
+4. **Configuration Parsing**: Extract and parse .conf files from archives
+5. **Data Normalization**: Store parsed stanzas with full provenance metadata
+6. **REST API**: Endpoints for upload, parsing status, worker health, and retrieval
+7. **Web Interface**: React-based UI for uploading files and viewing ingestion runs
 
 **Components:**
 
@@ -38,20 +42,33 @@ Milestone 1 establishes the foundation for configuration ingestion and storage. 
 ┌─────────────────────────────────────────────────────────────┐
 │                    FastAPI Backend (Python)                  │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  API Endpoints: /v1/uploads, /v1/runs, /v1/health   │   │
+│  │  API Endpoints: /v1/uploads, /v1/runs, /v1/health,  │   │
+│  │                 /v1/worker/health                     │   │
 │  └──────────────────────────────────────────────────────┘   │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
 │  │   Service    │  │   Storage    │  │   Middleware   │    │
 │  │    Layer     │  │  Abstraction │  │   (Logging)    │    │
 │  └──────────────┘  └──────────────┘  └────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
-            ↓                      ↓
-┌─────────────────────┐  ┌──────────────────────┐
-│   PostgreSQL        │  │  MinIO/Object Store  │
-│  (Metadata DB)      │  │  (File Blobs)        │
-│  - ingestion_runs   │  │  - .tar.gz archives  │
-│  - files            │  │                      │
-└─────────────────────┘  └──────────────────────┘
+            ↓                      ↓              ↓
+┌─────────────────────┐  ┌──────────────────────┐  ┌────────────┐
+│   PostgreSQL        │  │  MinIO/Object Store  │  │   Redis    │
+│  (Metadata DB)      │  │  (File Blobs)        │  │  (Queue)   │
+│  - ingestion_runs   │  │  - .tar.gz archives  │  │            │
+│  - files            │  │                      │  │            │
+│  - stanzas          │  │                      │  │            │
+└─────────────────────┘  └──────────────────────┘  └────────────┘
+            ↑                      ↑                      ↑
+            └──────────────────────┴──────────────────────┘
+                    ┌──────────────────────────────┐
+                    │   Celery Worker Service      │
+                    │  ┌────────────────────────┐  │
+                    │  │  parse_run(run_id)     │  │
+                    │  │  - Extract archives    │  │
+                    │  │  - Parse .conf files   │  │
+                    │  │  - Persist stanzas     │  │
+                    │  └────────────────────────┘  │
+                    └──────────────────────────────┘
 ```
 
 **Data Flow:**
@@ -59,14 +76,17 @@ Milestone 1 establishes the foundation for configuration ingestion and storage. 
 2. API validates file and metadata
 3. File is streamed to object storage (SHA256 hash computed)
 4. Metadata is persisted to PostgreSQL (run and file records)
-5. API returns run ID and status to UI
-6. User can list and view ingestion runs
+5. **Parsing task is enqueued to Redis** (NEW)
+6. **Worker picks up task and processes archive** (NEW)
+7. **Worker extracts and parses .conf files** (NEW)
+8. **Parsed stanzas stored in database with provenance** (NEW)
+9. Run status updated to COMPLETE or FAILED
+10. User can monitor parsing progress and view results
 
 **Future Milestones** will add:
-- Configuration parsing and normalization
 - Host and app resolution from serverclass configs
 - Data path computation and visualization
-- Background job processing with Celery
+- Advanced projections and queries
 
 See [`notes/milestone-1-plan.md`](notes/milestone-1-plan.md) for detailed milestone specifications.
 
@@ -79,7 +99,7 @@ See [`notes/milestone-1-plan.md`](notes/milestone-1-plan.md) for detailed milest
 - **SQLAlchemy/SQLModel** - Database ORM and query builder
 - **PostgreSQL 15+** - Primary data store
 - **Alembic** - Database migration management
-- **Celery + Redis** - Background task processing (future milestone)
+- **Celery + Redis** - Background task processing for asynchronous parsing
 
 ### Frontend
 - **React 18** - UI framework
@@ -133,6 +153,7 @@ See [`notes/milestone-1-plan.md`](notes/milestone-1-plan.md) for detailed milest
 3. **Access the application**
    - API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
+   - Worker Health: http://localhost:8000/v1/worker/health
    - Frontend: http://localhost:3000
    - MinIO Console: http://localhost:9001 (admin/password)
 
@@ -238,10 +259,12 @@ This project has comprehensive test coverage for both backend and frontend.
 - `backend/tests/conftest.py` - Shared pytest fixtures
 - Unit tests for models, schemas, storage, and API endpoints
 - Integration tests for upload lifecycle and database operations
+- `backend/tests/test_worker_integration.py` - Worker and parsing task tests
 
 **Test Categories:**
 - **Unit Tests:** Individual component behavior (models, schemas, endpoints)
-- **Integration Tests:** End-to-end workflows (upload lifecycle, storage operations)
+- **Integration Tests:** End-to-end workflows (upload lifecycle, storage operations, worker tasks)
+- **Worker Tests:** Background task execution, parsing, retry logic
 - **Error Handling Tests:** Edge cases, validation, failure scenarios
 
 **Running Backend Tests:**
