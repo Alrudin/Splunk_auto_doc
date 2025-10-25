@@ -6,6 +6,7 @@ import type {
   IngestionRun,
   UploadResponse,
   PaginatedResponse,
+  RunSummary,
   ParseResponse,
 } from '../types/api'
 
@@ -27,6 +28,13 @@ export const runsApi = {
    */
   async getRun(runId: number): Promise<IngestionRun> {
     return apiClient.get<IngestionRun>(`/v1/runs/${runId}`)
+  },
+
+  /**
+   * Get summary of parsed entities for a specific run
+   */
+  async getSummary(runId: number): Promise<RunSummary> {
+    return apiClient.get<RunSummary>(`/v1/runs/${runId}/summary`)
   },
 
   /**
