@@ -192,6 +192,65 @@ Status values:
 - `complete`: Successfully parsed
 - `failed`: Parsing failed
 
+### Detailed Job Status
+
+Get detailed job status including error details and metrics:
+
+```bash
+curl http://localhost:8000/v1/worker/runs/{run_id}/status
+```
+
+Response includes:
+```json
+{
+  "id": 42,
+  "status": "failed",
+  "task_id": "abc-123-def",
+  "retry_count": 3,
+  "error_message": "Permanent error: Invalid archive format",
+  "error_traceback": "Traceback (most recent call last)...",
+  "started_at": "2024-01-15T10:00:00Z",
+  "completed_at": "2024-01-15T10:05:30Z",
+  "metrics": {
+    "duration_seconds": 330,
+    "retry_count": 3,
+    "error_type": "permanent"
+  }
+}
+```
+
+### Worker Metrics
+
+Get aggregated worker and job metrics:
+
+```bash
+curl http://localhost:8000/v1/worker/metrics
+```
+
+Response:
+```json
+{
+  "status_counts": {
+    "complete": 150,
+    "failed": 5,
+    "parsing": 2
+  },
+  "retry_stats": {
+    "avg_retries": 0.3,
+    "max_retries": 3
+  },
+  "avg_duration_seconds": 45.5,
+  "recent_failures": [
+    {
+      "run_id": 42,
+      "error_message": "Invalid archive format",
+      "retry_count": 0,
+      "completed_at": "2024-01-15T10:05:30Z"
+    }
+  ]
+}
+```
+
 ## Configuration
 
 ### Task Settings
@@ -209,15 +268,37 @@ Configured in `app/worker/celery_app.py`:
 
 ### Retry Configuration
 
-Parse task retry settings:
+Parse task retry settings (configured in task decorator):
 
 | Setting | Value | Description |
 |---------|-------|-------------|
 | `max_retries` | 3 | Maximum retry attempts |
-| `default_retry_delay` | 60s | Base retry delay |
-| `retry_backoff` | True | Exponential backoff |
-| `retry_backoff_max` | 600s (10 min) | Maximum delay between retries |
-| `retry_jitter` | True | Add randomness to prevent thundering herd |
+| `Retry delay` | Exponential backoff | 60s, 180s, 600s (1min, 3min, 10min) |
+| `autoretry_for` | Manual control | Errors classified as transient or permanent |
+
+### Error Classification
+
+The worker intelligently classifies errors:
+
+**Permanent Errors** (no retry):
+- Malformed or corrupted archives
+- Unsupported archive formats
+- Missing required data (no files found)
+- Schema validation failures
+
+**Transient Errors** (retry with backoff):
+- Network connectivity issues
+- Database connection errors
+- Storage backend temporary failures
+- Resource unavailability
+
+### Retry Behavior
+
+1. **Exponential Backoff**: Retries occur at 60s, 180s, and 600s intervals
+2. **Error Tracking**: Each retry is logged with error details and stack traces
+3. **Idempotency**: Tasks can be safely retried without creating duplicates
+4. **Heartbeat**: Long-running tasks update heartbeat every 30 seconds
+5. **Metrics**: Execution metrics collected on completion or failure
 
 ## Troubleshooting
 
@@ -272,6 +353,8 @@ Parse task retry settings:
 1. Check run details for error message:
    ```bash
    curl http://localhost:8000/v1/runs/{run_id}
+   # Or use the detailed endpoint
+   curl http://localhost:8000/v1/worker/runs/{run_id}/status
    ```
 
 2. Review worker logs for stack traces:
@@ -280,10 +363,76 @@ Parse task retry settings:
    ```
 
 3. Common issues:
-   - Invalid archive format (only tar.gz, tar, zip supported)
-   - Corrupted archive file
-   - Storage backend connectivity issues
-   - Database connection issues
+   - **Invalid archive format**: Only tar.gz, tar, zip supported (permanent error - won't retry)
+   - **Corrupted archive**: File damaged during upload (permanent error - won't retry)
+   - **Storage backend connectivity**: Network issues (transient - will retry)
+   - **Database connection**: Temporary unavailability (transient - will retry)
+
+### Understanding Error Types
+
+The worker classifies errors into two categories:
+
+**Permanent Errors** (will not retry):
+- Error message starts with "Permanent error:"
+- Common causes:
+  - Malformed or corrupted archive files
+  - Unsupported archive formats
+  - Missing required data
+  - Invalid configuration structure
+- Action: Fix the input data and re-upload
+
+**Transient Errors** (will retry with backoff):
+- Error message starts with "Transient error (retry X):"
+- Common causes:
+  - Network connectivity issues
+  - Database connection timeouts
+  - Storage backend temporary failures
+- Action: Monitor retry attempts; most resolve automatically
+
+### Retry Exhaustion
+
+**Symptom**: Run failed after 3 retries
+
+**Error message**: "Failed after 3 retries: [error details]"
+
+**Solutions**:
+1. Check error details in run status:
+   ```bash
+   curl http://localhost:8000/v1/worker/runs/{run_id}/status
+   ```
+
+2. Common causes:
+   - Persistent network issues
+   - Database overload
+   - Storage backend issues
+
+3. Actions:
+   - Fix underlying infrastructure issue
+   - Re-upload the file to create a new run
+
+### Task Timeouts
+
+**Symptom**: Task fails with "Task exceeded time limit"
+
+**Solutions**:
+1. Check task duration in metrics:
+   ```bash
+   curl http://localhost:8000/v1/worker/metrics
+   ```
+
+2. For large archives:
+   - Increase `task_time_limit` in `celery_app.py`
+   - Split large archives into smaller bundles
+   - Check for performance bottlenecks in logs
+
+### Monitoring Task Progress
+
+**Check heartbeat for long-running tasks**:
+```bash
+curl http://localhost:8000/v1/worker/runs/{run_id}/status | jq '.last_heartbeat'
+```
+
+If `last_heartbeat` hasn't updated in >2 minutes, the task may be stuck.
 
 ### High Memory Usage
 
@@ -299,6 +448,18 @@ Parse task retry settings:
 
 3. Monitor task execution times and optimize parsing logic
 
+### Database Connection Issues
+
+**Symptom**: Frequent database errors in logs
+
+**Error pattern**: "Database error: [connection details]"
+
+**Solutions**:
+1. Check database connection pool settings
+2. Verify database is accessible from worker container
+3. Check database server load and performance
+4. Review `task_acks_late` setting - ensures tasks re-queue on connection loss
+
 ## Monitoring and Observability
 
 ### Logs
@@ -308,15 +469,44 @@ Worker logs include structured information:
 - Parsing progress (files and stanzas)
 - Error details with stack traces
 - Task duration and performance metrics
+- Retry attempts and backoff timing
+- Heartbeat updates for long-running tasks
 
 ### Metrics
 
-Key metrics to monitor:
-- **Worker count**: Number of active workers
-- **Active tasks**: Currently executing tasks
-- **Task duration**: Time to complete parsing
-- **Success/failure rate**: Task outcome statistics
-- **Retry count**: Number of task retries
+Key metrics to monitor (available via `/v1/worker/metrics` endpoint):
+
+- **Job Status Counts**: Number of jobs in each status
+- **Retry Statistics**: Average and maximum retry counts
+- **Success/Failure Rate**: Percentage of successful completions
+- **Average Duration**: Mean execution time for completed jobs
+- **Recent Failures**: List of recent failed jobs with error details
+
+### Error Tracking
+
+Each job stores comprehensive error information:
+- `error_message`: High-level error description
+- `error_traceback`: Full Python traceback for debugging
+- `retry_count`: Number of retry attempts
+- `metrics.error_type`: Classification (permanent, transient, timeout, etc.)
+
+### Task Monitoring Fields
+
+The `IngestionRun` model tracks:
+- `task_id`: Celery task ID for correlation
+- `started_at`: When task execution began
+- `last_heartbeat`: Last activity timestamp (for timeout detection)
+- `completed_at`: When task finished (success or failure)
+- `metrics`: JSON object with execution metrics
+
+### Alerting Recommendations
+
+Set up alerts for:
+1. **High failure rate**: >10% of jobs failing
+2. **Retry exhaustion**: Jobs consistently hitting max retries
+3. **Long-running tasks**: Tasks with stale heartbeats (>5 minutes)
+4. **Worker unavailability**: No active workers detected
+5. **Queue backlog**: High number of pending jobs
 
 ### Celery Flower (Optional)
 
