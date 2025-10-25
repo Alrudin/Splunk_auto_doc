@@ -143,9 +143,7 @@ export default function RunDetailPage() {
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Label</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {run.label || '-'}
-              </dd>
+              <dd className="mt-1 text-sm text-gray-900">{run.label || '-'}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Created At</dt>
