@@ -13,6 +13,7 @@ from app.models.input import Input
 from app.models.output import Output
 from app.models.props import Props
 from app.models.serverclass import Serverclass
+from app.models.stanza import Stanza
 from app.models.transform import Transform
 from app.schemas.index import IndexListResponse, IndexResponse
 from app.schemas.ingestion_run import (
@@ -20,6 +21,7 @@ from app.schemas.ingestion_run import (
     IngestionRunResponse,
     IngestionRunStatusResponse,
     IngestionRunStatusUpdate,
+    IngestionRunSummaryResponse,
 )
 from app.schemas.input import InputListResponse, InputResponse
 from app.schemas.output import OutputListResponse, OutputResponse
@@ -696,4 +698,75 @@ async def list_run_serverclasses(
         total=total,
         page=page,
         per_page=per_page,
+    )
+
+
+@router.get("/runs/{run_id}/summary", response_model=IngestionRunSummaryResponse)
+async def get_run_summary(
+    run_id: int,
+    db: Session = Depends(get_db),
+) -> IngestionRunSummaryResponse:
+    """Get entity count summary for a specific ingestion run.
+
+    Returns counts of all parsed entities including stanzas and typed
+    projections (inputs, props, transforms, indexes, outputs, serverclasses).
+    Useful for frontend summary panels showing parsing progress and results.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        db: Database session
+
+    Returns:
+        IngestionRunSummaryResponse: Entity counts and status
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Fetching summary for run_id={run_id}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Query for the run
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Query counts for each entity type
+    stanzas_count = db.query(Stanza).filter(Stanza.run_id == run_id).count()
+    inputs_count = db.query(Input).filter(Input.run_id == run_id).count()
+    props_count = db.query(Props).filter(Props.run_id == run_id).count()
+    transforms_count = db.query(Transform).filter(Transform.run_id == run_id).count()
+    indexes_count = db.query(Index).filter(Index.run_id == run_id).count()
+    outputs_count = db.query(Output).filter(Output.run_id == run_id).count()
+    serverclasses_count = (
+        db.query(Serverclass).filter(Serverclass.run_id == run_id).count()
+    )
+
+    logger.info(
+        f"Summary for run {run_id}: "
+        f"stanzas={stanzas_count}, inputs={inputs_count}, props={props_count}, "
+        f"transforms={transforms_count}, indexes={indexes_count}, "
+        f"outputs={outputs_count}, serverclasses={serverclasses_count}"
+    )
+
+    return IngestionRunSummaryResponse(
+        run_id=run.id,
+        status=run.status,
+        stanzas=stanzas_count,
+        inputs=inputs_count,
+        props=props_count,
+        transforms=transforms_count,
+        indexes=indexes_count,
+        outputs=outputs_count,
+        serverclasses=serverclasses_count,
     )
