@@ -1,7 +1,7 @@
 """Runs endpoints for listing and viewing ingestion runs."""
 
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -69,14 +69,14 @@ def _get_run_or_404(db: Session, run_id: int, context: str = "run") -> Ingestion
     return run
 
 
-def _extract_summary_from_metrics(metrics: dict | None) -> dict | None:
+def _extract_summary_from_metrics(metrics: dict[str, Any] | None) -> dict[str, Any] | None:
     """Extract summary data from run metrics.
 
     Args:
         metrics: Run metrics dictionary
 
     Returns:
-        dict | None: Summary with parsed counts, or None if no metrics
+        dict[str, Any] | None: Summary with parsed counts, or None if no metrics
     """
     if not metrics:
         return None
