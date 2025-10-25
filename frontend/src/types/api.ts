@@ -39,3 +39,15 @@ export interface PaginatedResponse<T> {
   per_page: number
   pages: number
 }
+
+export interface RunSummary {
+  run_id: number
+  status: string
+  stanzas: number
+  inputs: number
+  props: number
+  transforms: number
+  indexes: number
+  outputs: number
+  serverclasses: number
+}
