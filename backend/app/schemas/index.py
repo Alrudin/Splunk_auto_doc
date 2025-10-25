@@ -13,7 +13,9 @@ class IndexResponse(BaseModel):
     id: int = Field(description="Unique identifier for the index")
     run_id: int = Field(description="ID of the ingestion run")
     name: str = Field(description="Index name")
-    kv: dict[str, Any] | None = Field(None, description="Index configuration key-value pairs")
+    kv: dict[str, Any] | None = Field(
+        None, description="Index configuration key-value pairs"
+    )
 
 
 class IndexListResponse(BaseModel):

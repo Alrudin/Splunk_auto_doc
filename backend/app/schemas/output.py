@@ -13,7 +13,9 @@ class OutputResponse(BaseModel):
     id: int = Field(description="Unique identifier for the output")
     run_id: int = Field(description="ID of the ingestion run")
     group_name: str = Field(description="Output group name")
-    servers: dict[str, Any] | None = Field(None, description="Server list and configurations")
+    servers: dict[str, Any] | None = Field(
+        None, description="Server list and configurations"
+    )
     kv: dict[str, Any] | None = Field(None, description="Additional key-value pairs")
 
 

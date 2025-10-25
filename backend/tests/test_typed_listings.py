@@ -1,6 +1,5 @@
 """Tests for typed listing endpoints (inputs, props, transforms, indexes, outputs, serverclasses)."""
 
-import io
 
 import pytest
 
@@ -223,9 +222,36 @@ class TestInputsListEndpoint:
 
         # Create test inputs with different properties
         db = test_db()
-        db.add(Input(run_id=sample_run, source_path="/path1", app="app1", scope="default", layer="app", stanza_type="monitor://"))
-        db.add(Input(run_id=sample_run, source_path="/path2", app="app2", scope="local", layer="app", stanza_type="tcp://"))
-        db.add(Input(run_id=sample_run, source_path="/path3", app="app1", scope="default", layer="system", stanza_type="monitor://"))
+        db.add(
+            Input(
+                run_id=sample_run,
+                source_path="/path1",
+                app="app1",
+                scope="default",
+                layer="app",
+                stanza_type="monitor://",
+            )
+        )
+        db.add(
+            Input(
+                run_id=sample_run,
+                source_path="/path2",
+                app="app2",
+                scope="local",
+                layer="app",
+                stanza_type="tcp://",
+            )
+        )
+        db.add(
+            Input(
+                run_id=sample_run,
+                source_path="/path3",
+                app="app1",
+                scope="default",
+                layer="system",
+                stanza_type="monitor://",
+            )
+        )
         db.commit()
         db.close()
 
@@ -556,8 +582,24 @@ class TestServerclassesListEndpoint:
 
         # Create test serverclasses
         db = test_db()
-        db.add(Serverclass(run_id=sample_run, name="linux_hosts", app="app1", scope="default", layer="app"))
-        db.add(Serverclass(run_id=sample_run, name="windows_hosts", app="app2", scope="local", layer="app"))
+        db.add(
+            Serverclass(
+                run_id=sample_run,
+                name="linux_hosts",
+                app="app1",
+                scope="default",
+                layer="app",
+            )
+        )
+        db.add(
+            Serverclass(
+                run_id=sample_run,
+                name="windows_hosts",
+                app="app2",
+                scope="local",
+                layer="app",
+            )
+        )
         db.commit()
         db.close()
 

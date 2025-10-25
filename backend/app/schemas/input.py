@@ -13,7 +13,9 @@ class InputResponse(BaseModel):
     id: int = Field(description="Unique identifier for the input")
     run_id: int = Field(description="ID of the ingestion run")
     source_path: str = Field(description="Path to source inputs.conf")
-    stanza_type: str | None = Field(None, description="Input type (monitor://, tcp://, etc.)")
+    stanza_type: str | None = Field(
+        None, description="Input type (monitor://, tcp://, etc.)"
+    )
     index: str | None = Field(None, description="Target index")
     sourcetype: str | None = Field(None, description="Sourcetype")
     disabled: bool | None = Field(None, description="Whether input is disabled")

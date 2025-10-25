@@ -271,9 +271,15 @@ async def list_run_inputs(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
     app: Annotated[str | None, Query(description="Filter by app name")] = None,
-    scope: Annotated[str | None, Query(description="Filter by scope (default/local)")] = None,
-    layer: Annotated[str | None, Query(description="Filter by layer (system/app)")] = None,
-    stanza_type: Annotated[str | None, Query(description="Filter by stanza type")] = None,
+    scope: Annotated[
+        str | None, Query(description="Filter by scope (default/local)")
+    ] = None,
+    layer: Annotated[
+        str | None, Query(description="Filter by layer (system/app)")
+    ] = None,
+    stanza_type: Annotated[
+        str | None, Query(description="Filter by stanza type")
+    ] = None,
     index: Annotated[str | None, Query(description="Filter by index")] = None,
     db: Session = Depends(get_db),
 ) -> InputListResponse:
@@ -350,7 +356,9 @@ async def list_run_props(
     run_id: int,
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
-    target: Annotated[str | None, Query(description="Filter by target (sourcetype/source)")] = None,
+    target: Annotated[
+        str | None, Query(description="Filter by target (sourcetype/source)")
+    ] = None,
     db: Session = Depends(get_db),
 ) -> PropsListResponse:
     """List props for a specific ingestion run with pagination and filtering.
@@ -432,7 +440,9 @@ async def list_run_transforms(
     Raises:
         HTTPException: 404 if run not found, 400 if invalid run_id
     """
-    logger.info(f"Listing transforms for run_id={run_id}: page={page}, per_page={per_page}")
+    logger.info(
+        f"Listing transforms for run_id={run_id}: page={page}, per_page={per_page}"
+    )
 
     # Validate run_id is positive
     if run_id < 1:
@@ -496,7 +506,9 @@ async def list_run_indexes(
     Raises:
         HTTPException: 404 if run not found, 400 if invalid run_id
     """
-    logger.info(f"Listing indexes for run_id={run_id}: page={page}, per_page={per_page}")
+    logger.info(
+        f"Listing indexes for run_id={run_id}: page={page}, per_page={per_page}"
+    )
 
     # Validate run_id is positive
     if run_id < 1:
@@ -542,7 +554,9 @@ async def list_run_outputs(
     run_id: int,
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
     per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
-    group_name: Annotated[str | None, Query(description="Filter by output group name")] = None,
+    group_name: Annotated[
+        str | None, Query(description="Filter by output group name")
+    ] = None,
     db: Session = Depends(get_db),
 ) -> OutputListResponse:
     """List outputs for a specific ingestion run with pagination and filtering.
@@ -560,7 +574,9 @@ async def list_run_outputs(
     Raises:
         HTTPException: 404 if run not found, 400 if invalid run_id
     """
-    logger.info(f"Listing outputs for run_id={run_id}: page={page}, per_page={per_page}")
+    logger.info(
+        f"Listing outputs for run_id={run_id}: page={page}, per_page={per_page}"
+    )
 
     # Validate run_id is positive
     if run_id < 1:
@@ -608,8 +624,12 @@ async def list_run_serverclasses(
     per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
     name: Annotated[str | None, Query(description="Filter by serverclass name")] = None,
     app: Annotated[str | None, Query(description="Filter by app name")] = None,
-    scope: Annotated[str | None, Query(description="Filter by scope (default/local)")] = None,
-    layer: Annotated[str | None, Query(description="Filter by layer (system/app)")] = None,
+    scope: Annotated[
+        str | None, Query(description="Filter by scope (default/local)")
+    ] = None,
+    layer: Annotated[
+        str | None, Query(description="Filter by layer (system/app)")
+    ] = None,
     db: Session = Depends(get_db),
 ) -> ServerclassListResponse:
     """List serverclasses for a specific ingestion run with pagination and filtering.
@@ -630,7 +650,9 @@ async def list_run_serverclasses(
     Raises:
         HTTPException: 404 if run not found, 400 if invalid run_id
     """
-    logger.info(f"Listing serverclasses for run_id={run_id}: page={page}, per_page={per_page}")
+    logger.info(
+        f"Listing serverclasses for run_id={run_id}: page={page}, per_page={per_page}"
+    )
 
     # Validate run_id is positive
     if run_id < 1:

@@ -15,7 +15,9 @@ class ServerclassResponse(BaseModel):
     name: str = Field(description="Serverclass name")
     whitelist: dict[str, Any] | None = Field(None, description="Whitelist patterns")
     blacklist: dict[str, Any] | None = Field(None, description="Blacklist patterns")
-    app_assignments: dict[str, Any] | None = Field(None, description="App assignments for this serverclass")
+    app_assignments: dict[str, Any] | None = Field(
+        None, description="App assignments for this serverclass"
+    )
     kv: dict[str, Any] | None = Field(None, description="Additional key-value pairs")
     app: str | None = Field(None, description="Splunk app name")
     scope: str | None = Field(None, description="Scope (default or local)")

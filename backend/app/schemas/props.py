@@ -13,7 +13,9 @@ class PropsResponse(BaseModel):
     id: int = Field(description="Unique identifier for the props")
     run_id: int = Field(description="ID of the ingestion run")
     target: str = Field(description="Sourcetype or source pattern")
-    transforms_list: list[str] | None = Field(None, description="TRANSFORMS-* stanzas in order")
+    transforms_list: list[str] | None = Field(
+        None, description="TRANSFORMS-* stanzas in order"
+    )
     sedcmds: list[str] | None = Field(None, description="SEDCMD-* patterns")
     kv: dict[str, Any] | None = Field(None, description="Additional key-value pairs")
 
