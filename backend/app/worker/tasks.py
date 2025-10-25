@@ -26,12 +26,16 @@ from app.models.serverclass import Serverclass
 from app.models.stanza import Stanza
 from app.models.transform import Transform
 from app.parser import ConfParser, ParserError
-from app.projections.indexes import IndexProjector
-from app.projections.inputs import InputProjector
-from app.projections.outputs import OutputProjector
-from app.projections.props import PropsProjector
-from app.projections.serverclasses import ServerclassProjector
-from app.projections.transforms import TransformProjector
+from app.parser.types import ParsedStanza
+from app.projections import (
+    IndexProjector,
+    InputProjector,
+    OutputProjector,
+    Projector,
+    PropsProjector,
+    ServerclassProjector,
+    TransformProjector,
+)
 from app.storage import get_storage_backend
 from app.worker.celery_app import celery_app
 from app.worker.exceptions import PermanentError, TransientError
@@ -791,7 +795,7 @@ def _determine_conf_type(filename: str) -> str:
 
 def _bulk_insert_typed_projections(
     db: Session,
-    stanza_batches: dict[str, list[Any]],
+    stanza_batches: dict[str, list[ParsedStanza]],
     run_id: int,
 ) -> dict[str, int]:
     """Bulk insert typed projections using SQLAlchemy Core for performance.
@@ -819,7 +823,7 @@ def _bulk_insert_typed_projections(
     }
 
     # Initialize projectors
-    projectors = {
+    projectors: dict[str, Projector] = {
         "inputs": InputProjector(),
         "props": PropsProjector(),
         "transforms": TransformProjector(),

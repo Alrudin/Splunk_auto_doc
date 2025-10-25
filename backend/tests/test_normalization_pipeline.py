@@ -10,10 +10,7 @@ Tests cover:
 
 import io
 import tarfile
-import tempfile
 import zipfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -23,12 +20,10 @@ import tests.ensure_models  # noqa: F401
 try:
     from app.core.db import Base
     from app.models.index import Index
-    from app.models.ingestion_run import IngestionRun, IngestionStatus, IngestionType
     from app.models.input import Input
     from app.models.output import Output
     from app.models.props import Props
     from app.models.serverclass import Serverclass
-    from app.models.stanza import Stanza
     from app.models.transform import Transform
     from app.worker.tasks import (
         _bulk_insert_typed_projections,
@@ -70,7 +65,9 @@ class TestArchiveExtraction:
         # Create archive
         conf_dir = tmp_path / "etc" / "apps" / "test_app" / "default"
         conf_dir.mkdir(parents=True)
-        (conf_dir / "inputs.conf").write_text("[monitor:///var/log/test.log]\nindex = main\n")
+        (conf_dir / "inputs.conf").write_text(
+            "[monitor:///var/log/test.log]\nindex = main\n"
+        )
 
         archive_path = tmp_path / "test.tar.gz"
         with tarfile.open(archive_path, "w:gz") as tar:
@@ -157,11 +154,15 @@ class TestArchiveExtraction:
         archive_path = tmp_path / "bomb.tar.gz"
 
         with tarfile.open(archive_path, "w:gz") as tar:
-            # Create a 200MB file (exceeds 100MB limit)
+            # Create a file that would be 200MB when extracted (exceeds 100MB limit)
+            # But use a smaller actual size to avoid memory issues in tests
             info = tarfile.TarInfo(name="huge_file.conf")
-            info.size = 200 * 1024 * 1024
-            # Don't actually write 200MB, just set the size
-            tar.addfile(info, io.BytesIO(b""))
+            info.size = 200 * 1024 * 1024  # Declare 200MB size
+            # Create smaller data but repeat it to make the tarfile think it's large
+            small_data = b"x" * 1024  # 1KB of data
+            # Repeat this data to fill the declared size
+            large_data = io.BytesIO(small_data * (200 * 1024))  # 200MB worth
+            tar.addfile(info, large_data)
 
         extract_to = tmp_path / "extracted"
         extract_to.mkdir()
@@ -177,7 +178,7 @@ class TestArchiveExtraction:
             # Try to add 10001 files (exceeds 10000 limit)
             for i in range(10001):
                 info = tarfile.TarInfo(name=f"file_{i}.conf")
-                info.size = 10
+                info.size = 8  # Length of "[test]\n\n"
                 tar.addfile(info, io.BytesIO(b"[test]\n\n"))
 
         extract_to = tmp_path / "extracted"
@@ -194,7 +195,7 @@ class TestArchiveExtraction:
             # Create path with 21 levels (exceeds 20 limit)
             deep_path = "/".join([f"level{i}" for i in range(21)]) + "/file.conf"
             info = tarfile.TarInfo(name=deep_path)
-            info.size = 10
+            info.size = 8  # Length of "[test]\n\n"
             tar.addfile(info, io.BytesIO(b"[test]\n\n"))
 
         extract_to = tmp_path / "extracted"
@@ -209,10 +210,14 @@ class TestArchiveExtraction:
 
         with tarfile.open(archive_path, "w:gz") as tar:
             # Create 11 files of 100MB each (exceeds 1GB total limit)
+            # Use smaller actual data to avoid memory issues in tests
             for i in range(11):
                 info = tarfile.TarInfo(name=f"file_{i}.conf")
-                info.size = 100 * 1024 * 1024
-                tar.addfile(info, io.BytesIO(b""))
+                info.size = 100 * 1024 * 1024  # Declare 100MB size
+                # Create smaller data but repeat it to fill the declared size
+                small_data = b"x" * 1024  # 1KB of data
+                large_data = io.BytesIO(small_data * (100 * 1024))  # 100MB worth
+                tar.addfile(info, large_data)
 
         extract_to = tmp_path / "extracted"
         extract_to.mkdir()
@@ -450,7 +455,6 @@ restartSplunkd = true
 
     def test_projection_error_handling(self, test_db):
         """Test graceful handling of projection errors."""
-        from app.parser.core import ConfParser
         from app.parser.types import ParsedStanza
 
         # Create a malformed stanza that might cause projection issues
@@ -551,7 +555,7 @@ class TestPerformance:
         for i in range(1000):
             stanza = ParsedStanza(
                 name=f"monitor:///var/log/app_{i}.log",
-                provenance=Provenance(source_path=f"/etc/apps/test/local/inputs.conf"),
+                provenance=Provenance(source_path="/etc/apps/test/local/inputs.conf"),
             )
             stanza.add_key("index", "main")
             stanza.add_key("sourcetype", f"app:log:{i}")
@@ -583,7 +587,7 @@ class TestPerformance:
         for i in range(10000):
             stanza = ParsedStanza(
                 name=f"monitor:///var/log/app_{i}.log",
-                provenance=Provenance(source_path=f"/etc/apps/test/local/inputs.conf"),
+                provenance=Provenance(source_path="/etc/apps/test/local/inputs.conf"),
             )
             stanza.add_key("index", "main")
             stanza.add_key("sourcetype", f"app:log:{i}")
