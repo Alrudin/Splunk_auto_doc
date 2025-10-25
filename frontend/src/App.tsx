@@ -4,6 +4,7 @@ import MainLayout from './layouts/MainLayout'
 import HomePage from './pages/HomePage'
 import UploadPage from './pages/UploadPage'
 import RunsPage from './pages/RunsPage'
+import RunDetailPage from './pages/RunDetailPage'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -25,6 +26,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="upload" element={<UploadPage />} />
             <Route path="runs" element={<RunsPage />} />
+            <Route path="runs/:id" element={<RunDetailPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

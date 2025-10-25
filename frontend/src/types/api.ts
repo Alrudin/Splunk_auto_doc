@@ -39,3 +39,10 @@ export interface PaginatedResponse<T> {
   per_page: number
   pages: number
 }
+
+export interface ParseResponse {
+  run_id: number
+  status: string
+  task_id: string
+  message: string
+}

@@ -6,6 +6,7 @@ import type {
   IngestionRun,
   UploadResponse,
   PaginatedResponse,
+  ParseResponse,
 } from '../types/api'
 
 export const runsApi = {
@@ -44,6 +45,13 @@ export const runsApi = {
     }
 
     return apiClient.postFormData<UploadResponse>('/v1/uploads', formData)
+  },
+
+  /**
+   * Trigger parsing for a specific ingestion run
+   */
+  async triggerParse(runId: number): Promise<ParseResponse> {
+    return apiClient.post<ParseResponse>(`/v1/runs/${runId}/parse`, {})
   },
 }
 
