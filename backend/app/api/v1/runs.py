@@ -221,9 +221,11 @@ async def update_run_status(
     # Mark as completed if transitioning to terminal state
     from datetime import datetime
 
-    if status_update.status in [IngestionStatus.COMPLETE, IngestionStatus.FAILED]:
-        if not run.completed_at:
-            run.completed_at = datetime.utcnow()
+    if (
+        status_update.status in [IngestionStatus.COMPLETE, IngestionStatus.FAILED]
+        and not run.completed_at
+    ):
+        run.completed_at = datetime.utcnow()
 
     db.commit()
 
@@ -249,4 +251,3 @@ async def update_run_status(
         error_message=run.error_message,
         summary=summary,
     )
-

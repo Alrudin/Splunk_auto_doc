@@ -7,8 +7,6 @@ import tests.ensure_models  # noqa: F401
 
 # Try to import dependencies, skip tests if not available
 try:
-    from datetime import datetime
-
     from app.core.db import Base, get_db
     from app.main import create_app
     from app.models.ingestion_run import IngestionRun, IngestionStatus, IngestionType

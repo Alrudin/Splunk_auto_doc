@@ -354,12 +354,12 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                 f"Created typed projections: {projection_counts}",
                 extra={"run_id": run_id},
             )
-            
+
             # Update status to normalized after typed projections complete
             run.status = IngestionStatus.NORMALIZED
             db.commit()
             logger.info(f"Updated run {run_id} status to NORMALIZED")
-            
+
         except Exception as e:
             logger.error(f"Failed to create typed projections: {e}", exc_info=True)
             # Typed projection errors are non-fatal - stanzas are already persisted

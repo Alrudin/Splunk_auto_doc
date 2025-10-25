@@ -105,7 +105,7 @@ def test_parse_run_task_success(test_db, test_storage, sample_conf_archive):
     """Test successful parse_run task execution."""
     # Skip if PostgreSQL is not available
     try:
-        import psycopg2
+        import psycopg2  # type: ignore
 
         psycopg2.connect(
             host="localhost",
@@ -286,7 +286,7 @@ def test_parse_run_task_no_files(test_db):
     # Verify run marked as failed
     test_db.refresh(run)
     assert run.status == IngestionStatus.FAILED
-    assert "No files found" in run.notes
+    assert run.notes is not None and "No files found" in run.notes
 
 
 @pytest.mark.integration
@@ -441,7 +441,10 @@ def wait_for_task_completion(task_id: str, timeout: int = 30) -> dict:
     if not result.successful():
         raise Exception(f"Task {task_id} failed: {result.info}")
 
-    return result.result
+    task_result = result.result
+    if not isinstance(task_result, dict):
+        raise ValueError(f"Expected dict result, got {type(task_result)}")
+    return task_result
 
 
 def wait_for_run_status(
@@ -469,7 +472,7 @@ def wait_for_run_status(
 
         data = response.json()
         if data["status"] == expected_status:
-            return data
+            return dict(data)
 
         if data["status"] == "failed":
             raise Exception(

@@ -104,11 +104,11 @@ FORMAT = result
 
 def create_test_task(test_db, task_id="test-task-id"):
     """Helper to create a DatabaseTask for testing.
-    
+
     Args:
         test_db: Test database session
         task_id: Mock Celery task ID
-        
+
     Returns:
         DatabaseTask instance ready for testing
     """
@@ -221,13 +221,14 @@ def test_normalized_status_is_set(test_db, test_storage, sample_conf_archive):
     task = create_test_task(test_db, "test-task-id-normalized")
 
     # Execute the task
-    result = parse_run(task, run_id)
+    parse_run(task, run_id)
 
     # Check final status
     test_db.refresh(run)
     assert run.status == IngestionStatus.COMPLETE
 
     # Verify typed projections were created (this happens during NORMALIZED phase)
+    assert run.metrics is not None
     assert "typed_projections" in run.metrics
     typed_projections = run.metrics["typed_projections"]
 
@@ -272,7 +273,7 @@ def test_status_persists_summary_counts(test_db, test_storage, sample_conf_archi
     # Execute task
     task = create_test_task(test_db, "test-task-id-summary")
 
-    result = parse_run(task, run_id)
+    parse_run(task, run_id)
 
     # Verify summary counts are in metrics
     test_db.refresh(run)

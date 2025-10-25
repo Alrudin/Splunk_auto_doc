@@ -31,7 +31,7 @@ class IngestionType(str, enum.Enum):
 
 class IngestionStatus(str, enum.Enum):
     """Status of an ingestion run.
-    
+
     Lifecycle: PENDING → STORED → PARSING → NORMALIZED → COMPLETE
                                                 ↓
                                              FAILED

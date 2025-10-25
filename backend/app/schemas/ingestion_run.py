@@ -70,4 +70,3 @@ class IngestionRunStatusUpdate(BaseModel):
 
     status: IngestionStatus = Field(description="New status to set")
     error_message: str | None = Field(None, description="Optional error message")
-
