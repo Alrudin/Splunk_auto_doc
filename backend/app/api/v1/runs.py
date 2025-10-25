@@ -7,13 +7,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+from app.models.index import Index
 from app.models.ingestion_run import IngestionRun, IngestionStatus
+from app.models.input import Input
+from app.models.output import Output
+from app.models.props import Props
+from app.models.serverclass import Serverclass
+from app.models.transform import Transform
+from app.schemas.index import IndexListResponse, IndexResponse
 from app.schemas.ingestion_run import (
     IngestionRunListResponse,
     IngestionRunResponse,
     IngestionRunStatusResponse,
     IngestionRunStatusUpdate,
 )
+from app.schemas.input import InputListResponse, InputResponse
+from app.schemas.output import OutputListResponse, OutputResponse
+from app.schemas.props import PropsListResponse, PropsResponse
+from app.schemas.serverclass import ServerclassListResponse, ServerclassResponse
+from app.schemas.transform import TransformListResponse, TransformResponse
 
 logger = logging.getLogger(__name__)
 
@@ -250,4 +262,416 @@ async def update_run_status(
         status=run.status,
         error_message=run.error_message,
         summary=summary,
+    )
+
+
+@router.get("/runs/{run_id}/inputs", response_model=InputListResponse)
+async def list_run_inputs(
+    run_id: int,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
+    app: Annotated[str | None, Query(description="Filter by app name")] = None,
+    scope: Annotated[str | None, Query(description="Filter by scope (default/local)")] = None,
+    layer: Annotated[str | None, Query(description="Filter by layer (system/app)")] = None,
+    stanza_type: Annotated[str | None, Query(description="Filter by stanza type")] = None,
+    index: Annotated[str | None, Query(description="Filter by index")] = None,
+    db: Session = Depends(get_db),
+) -> InputListResponse:
+    """List inputs for a specific ingestion run with pagination and filtering.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        page: Page number (1-indexed)
+        per_page: Number of results per page (max 100)
+        app: Optional filter by app name
+        scope: Optional filter by scope
+        layer: Optional filter by layer
+        stanza_type: Optional filter by stanza type
+        index: Optional filter by index
+        db: Database session
+
+    Returns:
+        InputListResponse: Paginated list of inputs
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Listing inputs for run_id={run_id}: page={page}, per_page={per_page}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Verify run exists
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Build query with filters
+    query = db.query(Input).filter(Input.run_id == run_id)
+
+    if app is not None:
+        query = query.filter(Input.app == app)
+    if scope is not None:
+        query = query.filter(Input.scope == scope)
+    if layer is not None:
+        query = query.filter(Input.layer == layer)
+    if stanza_type is not None:
+        query = query.filter(Input.stanza_type == stanza_type)
+    if index is not None:
+        query = query.filter(Input.index == index)
+
+    # Get total count
+    total = query.count()
+
+    # Calculate offset and get paginated results
+    offset = (page - 1) * per_page
+    inputs = query.order_by(Input.id).offset(offset).limit(per_page).all()
+
+    logger.info(f"Found {len(inputs)} inputs (total: {total})")
+
+    return InputListResponse(
+        inputs=[InputResponse.model_validate(inp) for inp in inputs],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
+
+
+@router.get("/runs/{run_id}/props", response_model=PropsListResponse)
+async def list_run_props(
+    run_id: int,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
+    target: Annotated[str | None, Query(description="Filter by target (sourcetype/source)")] = None,
+    db: Session = Depends(get_db),
+) -> PropsListResponse:
+    """List props for a specific ingestion run with pagination and filtering.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        page: Page number (1-indexed)
+        per_page: Number of results per page (max 100)
+        target: Optional filter by target
+        db: Database session
+
+    Returns:
+        PropsListResponse: Paginated list of props
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Listing props for run_id={run_id}: page={page}, per_page={per_page}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Verify run exists
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Build query with filters
+    query = db.query(Props).filter(Props.run_id == run_id)
+
+    if target is not None:
+        query = query.filter(Props.target == target)
+
+    # Get total count
+    total = query.count()
+
+    # Calculate offset and get paginated results
+    offset = (page - 1) * per_page
+    props = query.order_by(Props.id).offset(offset).limit(per_page).all()
+
+    logger.info(f"Found {len(props)} props (total: {total})")
+
+    return PropsListResponse(
+        props=[PropsResponse.model_validate(p) for p in props],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
+
+
+@router.get("/runs/{run_id}/transforms", response_model=TransformListResponse)
+async def list_run_transforms(
+    run_id: int,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
+    name: Annotated[str | None, Query(description="Filter by transform name")] = None,
+    db: Session = Depends(get_db),
+) -> TransformListResponse:
+    """List transforms for a specific ingestion run with pagination and filtering.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        page: Page number (1-indexed)
+        per_page: Number of results per page (max 100)
+        name: Optional filter by transform name
+        db: Database session
+
+    Returns:
+        TransformListResponse: Paginated list of transforms
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Listing transforms for run_id={run_id}: page={page}, per_page={per_page}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Verify run exists
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Build query with filters
+    query = db.query(Transform).filter(Transform.run_id == run_id)
+
+    if name is not None:
+        query = query.filter(Transform.name == name)
+
+    # Get total count
+    total = query.count()
+
+    # Calculate offset and get paginated results
+    offset = (page - 1) * per_page
+    transforms = query.order_by(Transform.id).offset(offset).limit(per_page).all()
+
+    logger.info(f"Found {len(transforms)} transforms (total: {total})")
+
+    return TransformListResponse(
+        transforms=[TransformResponse.model_validate(t) for t in transforms],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
+
+
+@router.get("/runs/{run_id}/indexes", response_model=IndexListResponse)
+async def list_run_indexes(
+    run_id: int,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
+    name: Annotated[str | None, Query(description="Filter by index name")] = None,
+    db: Session = Depends(get_db),
+) -> IndexListResponse:
+    """List indexes for a specific ingestion run with pagination and filtering.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        page: Page number (1-indexed)
+        per_page: Number of results per page (max 100)
+        name: Optional filter by index name
+        db: Database session
+
+    Returns:
+        IndexListResponse: Paginated list of indexes
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Listing indexes for run_id={run_id}: page={page}, per_page={per_page}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Verify run exists
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Build query with filters
+    query = db.query(Index).filter(Index.run_id == run_id)
+
+    if name is not None:
+        query = query.filter(Index.name == name)
+
+    # Get total count
+    total = query.count()
+
+    # Calculate offset and get paginated results
+    offset = (page - 1) * per_page
+    indexes = query.order_by(Index.id).offset(offset).limit(per_page).all()
+
+    logger.info(f"Found {len(indexes)} indexes (total: {total})")
+
+    return IndexListResponse(
+        indexes=[IndexResponse.model_validate(idx) for idx in indexes],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
+
+
+@router.get("/runs/{run_id}/outputs", response_model=OutputListResponse)
+async def list_run_outputs(
+    run_id: int,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
+    group_name: Annotated[str | None, Query(description="Filter by output group name")] = None,
+    db: Session = Depends(get_db),
+) -> OutputListResponse:
+    """List outputs for a specific ingestion run with pagination and filtering.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        page: Page number (1-indexed)
+        per_page: Number of results per page (max 100)
+        group_name: Optional filter by output group name
+        db: Database session
+
+    Returns:
+        OutputListResponse: Paginated list of outputs
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Listing outputs for run_id={run_id}: page={page}, per_page={per_page}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Verify run exists
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Build query with filters
+    query = db.query(Output).filter(Output.run_id == run_id)
+
+    if group_name is not None:
+        query = query.filter(Output.group_name == group_name)
+
+    # Get total count
+    total = query.count()
+
+    # Calculate offset and get paginated results
+    offset = (page - 1) * per_page
+    outputs = query.order_by(Output.id).offset(offset).limit(per_page).all()
+
+    logger.info(f"Found {len(outputs)} outputs (total: {total})")
+
+    return OutputListResponse(
+        outputs=[OutputResponse.model_validate(out) for out in outputs],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
+
+
+@router.get("/runs/{run_id}/serverclasses", response_model=ServerclassListResponse)
+async def list_run_serverclasses(
+    run_id: int,
+    page: Annotated[int, Query(ge=1, description="Page number")] = 1,
+    per_page: Annotated[int, Query(ge=1, le=100, description="Results per page")] = 50,
+    name: Annotated[str | None, Query(description="Filter by serverclass name")] = None,
+    app: Annotated[str | None, Query(description="Filter by app name")] = None,
+    scope: Annotated[str | None, Query(description="Filter by scope (default/local)")] = None,
+    layer: Annotated[str | None, Query(description="Filter by layer (system/app)")] = None,
+    db: Session = Depends(get_db),
+) -> ServerclassListResponse:
+    """List serverclasses for a specific ingestion run with pagination and filtering.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        page: Page number (1-indexed)
+        per_page: Number of results per page (max 100)
+        name: Optional filter by serverclass name
+        app: Optional filter by app name
+        scope: Optional filter by scope
+        layer: Optional filter by layer
+        db: Database session
+
+    Returns:
+        ServerclassListResponse: Paginated list of serverclasses
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Listing serverclasses for run_id={run_id}: page={page}, per_page={per_page}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Verify run exists
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Build query with filters
+    query = db.query(Serverclass).filter(Serverclass.run_id == run_id)
+
+    if name is not None:
+        query = query.filter(Serverclass.name == name)
+    if app is not None:
+        query = query.filter(Serverclass.app == app)
+    if scope is not None:
+        query = query.filter(Serverclass.scope == scope)
+    if layer is not None:
+        query = query.filter(Serverclass.layer == layer)
+
+    # Get total count
+    total = query.count()
+
+    # Calculate offset and get paginated results
+    offset = (page - 1) * per_page
+    serverclasses = query.order_by(Serverclass.id).offset(offset).limit(per_page).all()
+
+    logger.info(f"Found {len(serverclasses)} serverclasses (total: {total})")
+
+    return ServerclassListResponse(
+        serverclasses=[ServerclassResponse.model_validate(sc) for sc in serverclasses],
+        total=total,
+        page=page,
+        per_page=per_page,
     )
