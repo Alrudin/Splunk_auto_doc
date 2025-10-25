@@ -324,6 +324,6 @@ class TestParseStatusEndpoint:
         assert "error_message" in data
         assert "summary" in data
 
-        # Verify status is a valid parse state
-        valid_states = ["pending", "stored", "parsing", "normalized", "complete", "failed"]
+        # Verify status is a valid parse state from the enum
+        valid_states = [s.value for s in IngestionStatus]
         assert data["status"] in valid_states

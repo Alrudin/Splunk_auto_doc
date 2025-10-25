@@ -35,6 +35,61 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _get_run_or_404(db: Session, run_id: int, context: str = "run") -> IngestionRun:
+    """Get a run by ID or raise 404.
+
+    Args:
+        db: Database session
+        run_id: Run ID to fetch
+        context: Context string for error messages
+
+    Returns:
+        IngestionRun: The requested run
+
+    Raises:
+        HTTPException: 400 if invalid run_id, 404 if not found
+    """
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Query for the run
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+
+    if not run:
+        logger.warning(f"Run not found for {context}: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    return run
+
+
+def _extract_summary_from_metrics(metrics: dict | None) -> dict | None:
+    """Extract summary data from run metrics.
+
+    Args:
+        metrics: Run metrics dictionary
+
+    Returns:
+        dict | None: Summary with parsed counts, or None if no metrics
+    """
+    if not metrics:
+        return None
+
+    return {
+        "files_parsed": metrics.get("files_parsed", 0),
+        "stanzas_created": metrics.get("stanzas_created", 0),
+        "typed_projections": metrics.get("typed_projections", {}),
+        "parse_errors": metrics.get("parse_errors", 0),
+        "duration_seconds": metrics.get("duration_seconds", 0),
+    }
+
+
 @router.get("/runs", response_model=IngestionRunListResponse)
 async def list_runs(
     page: Annotated[int, Query(ge=1, description="Page number")] = 1,
@@ -143,33 +198,11 @@ async def get_run_status(
     """
     logger.info(f"Fetching status for run_id={run_id}")
 
-    # Validate run_id is positive
-    if run_id < 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
-        )
-
-    # Query for the run
-    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
-
-    if not run:
-        logger.warning(f"Run not found: run_id={run_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Run with id {run_id} not found",
-        )
+    # Get run or raise 404
+    run = _get_run_or_404(db, run_id, context="status")
 
     # Extract summary from metrics if available
-    summary = None
-    if run.metrics:
-        summary = {
-            "files_parsed": run.metrics.get("files_parsed", 0),
-            "stanzas_created": run.metrics.get("stanzas_created", 0),
-            "typed_projections": run.metrics.get("typed_projections", {}),
-            "parse_errors": run.metrics.get("parse_errors", 0),
-            "duration_seconds": run.metrics.get("duration_seconds", 0),
-        }
+    summary = _extract_summary_from_metrics(run.metrics)
 
     logger.info(f"Status for run {run_id}: {run.status}")
 
@@ -436,33 +469,11 @@ async def get_parse_status(
     """
     logger.info(f"Fetching parse status for run_id={run_id}")
 
-    # Validate run_id is positive
-    if run_id < 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
-        )
-
-    # Query for the run
-    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
-
-    if not run:
-        logger.warning(f"Run not found for parse status: run_id={run_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Run with id {run_id} not found",
-        )
+    # Get run or raise 404
+    run = _get_run_or_404(db, run_id, context="parse status")
 
     # Extract summary from metrics if available
-    summary = None
-    if run.metrics:
-        summary = {
-            "files_parsed": run.metrics.get("files_parsed", 0),
-            "stanzas_created": run.metrics.get("stanzas_created", 0),
-            "typed_projections": run.metrics.get("typed_projections", {}),
-            "parse_errors": run.metrics.get("parse_errors", 0),
-            "duration_seconds": run.metrics.get("duration_seconds", 0),
-        }
+    summary = _extract_summary_from_metrics(run.metrics)
 
     # Log status transitions for monitoring
     logger.info(
