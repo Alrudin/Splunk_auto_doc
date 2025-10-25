@@ -69,7 +69,9 @@ def _get_run_or_404(db: Session, run_id: int, context: str = "run") -> Ingestion
     return run
 
 
-def _extract_summary_from_metrics(metrics: dict[str, Any] | None) -> dict[str, Any] | None:
+def _extract_summary_from_metrics(
+    metrics: dict[str, Any] | None,
+) -> dict[str, Any] | None:
     """Extract summary data from run metrics.
 
     Args:
