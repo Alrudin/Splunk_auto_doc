@@ -30,11 +30,17 @@ class IngestionType(str, enum.Enum):
 
 
 class IngestionStatus(str, enum.Enum):
-    """Status of an ingestion run."""
+    """Status of an ingestion run.
+
+    Lifecycle: PENDING → STORED → PARSING → NORMALIZED → COMPLETE
+                                                ↓
+                                             FAILED
+    """
 
     PENDING = "pending"  # Run created, file upload in progress
     STORED = "stored"  # File stored successfully
     PARSING = "parsing"  # Parsing job enqueued or in progress
+    NORMALIZED = "normalized"  # Stanzas parsed and typed projections created
     FAILED = "failed"  # Upload, storage, or parsing failed
     COMPLETE = "complete"  # Fully processed
 

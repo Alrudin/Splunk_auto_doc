@@ -51,3 +51,22 @@ class IngestionRunListResponse(BaseModel):
     total: int
     page: int = 1
     per_page: int = 50
+
+
+class IngestionRunStatusResponse(BaseModel):
+    """Schema for run status API response."""
+
+    run_id: int = Field(description="Unique identifier for the ingestion run")
+    status: IngestionStatus = Field(description="Current status of the ingestion run")
+    error_message: str | None = Field(None, description="Error message if failed")
+    summary: dict[str, Any] | None = Field(
+        None,
+        description="Summary counts: files_parsed, stanzas_created, typed_projections, etc.",
+    )
+
+
+class IngestionRunStatusUpdate(BaseModel):
+    """Schema for updating run status (admin/debug only)."""
+
+    status: IngestionStatus = Field(description="New status to set")
+    error_message: str | None = Field(None, description="Optional error message")

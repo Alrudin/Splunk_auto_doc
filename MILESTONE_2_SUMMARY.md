@@ -384,9 +384,54 @@ docker compose logs -f worker
 
 Milestone 2 is **complete and production-ready**. All acceptance criteria have been met with comprehensive implementation, testing, and documentation. The background worker service provides a solid foundation for scalable, reliable processing of Splunk configuration files.
 
+## Status Lifecycle Enhancement (October 25, 2025)
+
+**Update**: Enhanced run status lifecycle with NORMALIZED state and status management API endpoints.
+
+### Additional Implementation
+- **Status Enum**: Added `NORMALIZED` status to track typed projection completion
+- **Migration**: Created migration 006 for normalized status (no-op, string-based)
+- **Worker Updates**: Modified worker to transition `STORED → PARSING → NORMALIZED → COMPLETE`
+- **API Endpoints**:
+  - `GET /v1/runs/{run_id}/status` - Retrieve status with summary metrics
+  - `PATCH /v1/runs/{run_id}/status` - Admin/debug endpoint for manual status updates
+- **Schemas**: Added `IngestionRunStatusResponse` and `IngestionRunStatusUpdate`
+- **Documentation**: Enhanced `docs/normalization-model.md` with detailed lifecycle diagram
+- **Testing**: Added `test_status_lifecycle.py` (12 test cases) and `test_status_lifecycle_integration.py` (5 integration tests)
+
+### Status Lifecycle
+```
+PENDING → STORED → PARSING → NORMALIZED → COMPLETE
+                                    ↓
+                                 FAILED
+```
+
+### Summary Metrics
+Now exposed via `/v1/runs/{run_id}/status`:
+- `files_parsed` - Number of configuration files processed
+- `stanzas_created` - Total stanzas extracted
+- `typed_projections` - Count by type (inputs, props, transforms, etc.)
+- `parse_errors` - Number of parsing errors
+- `duration_seconds` - Total processing time
+
+### Files Added
+- `backend/alembic/versions/006_add_normalized_status.py`
+- `backend/tests/test_status_lifecycle.py`
+- `backend/tests/test_status_lifecycle_integration.py`
+
+### Files Modified
+- `backend/app/models/ingestion_run.py`
+- `backend/app/schemas/ingestion_run.py`
+- `backend/app/api/v1/runs.py`
+- `backend/app/worker/tasks.py`
+- `docs/normalization-model.md`
+- `notes/milestone-2-gap-analysis.md`
+
 ### Key Achievements
 - ✅ Fully functional worker service
 - ✅ Robust parsing task with retry logic
+- ✅ **Complete status lifecycle with monitoring endpoints**
+- ✅ **Summary metrics and error reporting**
 - ✅ Complete integration tests
 - ✅ Comprehensive documentation
 - ✅ Security validated

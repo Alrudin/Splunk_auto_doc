@@ -1362,11 +1362,101 @@ The `ingestion_runs` table tracks the complete lifecycle of configuration upload
 
 #### Status Flow
 
+The ingestion run transitions through the following states:
+
 ```
-PENDING → STORED → PARSING → COMPLETE
-                        ↓
-                     FAILED
+                    ┌─────────┐
+                    │ PENDING │  Run created, file upload in progress
+                    └────┬────┘
+                         │
+                         ▼
+                    ┌─────────┐
+                    │ STORED  │  File stored successfully, parsing queued
+                    └────┬────┘
+                         │
+                         ▼
+                    ┌─────────┐
+                    │ PARSING │  Parsing job in progress, extracting stanzas
+                    └────┬────┘
+                         │
+                         ▼
+                  ┌──────────────┐
+                  │ NORMALIZED   │  Stanzas parsed, typed projections created
+                  └──────┬───────┘
+                         │
+                         ▼
+                  ┌──────────────┐
+                  │  COMPLETE    │  Fully processed and validated
+                  └──────────────┘
+
+Note: At any stage from STORED through NORMALIZED, the run can transition to FAILED
+if an error occurs (shown below):
+
+                  STORED / PARSING / NORMALIZED
+                         │
+                         ├──────► FAILED  (on error)
 ```
+
+**Status Descriptions**:
+
+- **PENDING**: Run created, file upload in progress
+- **STORED**: File stored successfully in storage backend, parsing job queued
+- **PARSING**: Worker is extracting and parsing .conf files into stanzas
+- **NORMALIZED**: Stanzas have been parsed and typed projections created
+- **COMPLETE**: All processing complete, metrics stored, ready for queries
+- **FAILED**: Upload, storage, parsing, or normalization failed (see error_message)
+
+#### API Endpoints for Status
+
+The following endpoints enable monitoring and management of run status:
+
+**GET /v1/runs/{run_id}/status** - Get current status and summary
+```bash
+curl http://localhost:8000/v1/runs/42/status
+```
+
+Response:
+```json
+{
+  "run_id": 42,
+  "status": "complete",
+  "error_message": null,
+  "summary": {
+    "files_parsed": 15,
+    "stanzas_created": 234,
+    "typed_projections": {
+      "inputs": 45,
+      "props": 32,
+      "transforms": 28,
+      "indexes": 8,
+      "outputs": 12,
+      "serverclasses": 3
+    },
+    "parse_errors": 0,
+    "duration_seconds": 12.5
+  }
+}
+```
+
+**PATCH /v1/runs/{run_id}/status** - Update status (admin/debug only)
+```bash
+curl -X PATCH http://localhost:8000/v1/runs/42/status \
+  -H "Content-Type: application/json" \
+  -d '{"status": "failed", "error_message": "Manual intervention required"}'
+```
+
+Response:
+```json
+{
+  "run_id": 42,
+  "status": "failed",
+  "error_message": "Manual intervention required",
+  "summary": null
+}
+```
+
+**Note**: The PATCH endpoint is intended for administrative and debugging purposes only.
+Normal status transitions occur automatically through the worker pipeline.
 
 #### Enhanced Tracking Fields
 
@@ -1414,12 +1504,23 @@ The `metrics` JSONB field stores execution data:
 {
   "files_parsed": 15,
   "stanzas_created": 234,
+  "typed_projections": {
+    "inputs": 45,
+    "props": 32,
+    "transforms": 28,
+    "indexes": 8,
+    "outputs": 12,
+    "serverclasses": 3
+  },
   "duration_seconds": 45.5,
   "parse_errors": 2,
   "retry_count": 1,
   "error_type": "transient"
 }
 ```
+
+These metrics are exposed via the `/v1/runs/{run_id}/status` endpoint for monitoring
+and debugging purposes.
 
 ### Idempotency Guarantees
 
