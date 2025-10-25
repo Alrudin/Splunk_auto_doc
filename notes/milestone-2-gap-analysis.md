@@ -37,7 +37,7 @@ Current state: Core parsing and all typed projections are complete. Background w
 | Normalization pipeline: unpack → walk → parse → bulk insert                   |   Yes    | #70 (closed)                                                       | End-to-end orchestration complete; bulk insert with provenance and counts                    |
 | Background worker: Redis + Celery/RQ, parse task with retries                 |   Yes    | #67 (worker service closed), #68 (retries/failure handling closed) | Worker service, retries/backoff, visibility/health, logs/metrics implemented                |
 | Run status lifecycle: stored → parsing → normalized → complete/failed         |   Yes    | #[current] (implemented)                                           | Status enum extended with NORMALIZED; API endpoints added; docs updated                      |
-| API: trigger parse, status, summary, typed listings                           |   Yes    | #[current] (implemented)                                           | All typed listing endpoints implemented with pagination/filtering; documented in README      |
+| API: trigger parse, status, summary, typed listings                           |   Yes    | #[current] (completed)                                             | Summary endpoint and all typed listing endpoints implemented with pagination/filtering; documented in README |
 | Frontend: Run detail “Parse” button, status polling, counts panel             |   No     | –                                                                  | Minimal UI to monitor and inspect parsed artifacts                                           |
 | Observability: structured logs, metrics, extraction guardrails                |  Partial | #67, #68, #70 (closed)                                             | Worker metrics/logs and pipeline guardrails done; extend system-wide metrics and dashboards  |
 | Fixtures & tests: golden fixtures, property tests, integration                |   Yes    | #52, #54, #56, #57, #58, #59, #60, #70 (closed)                    | Parser + typed projection + pipeline integration tests in place                              |
@@ -107,6 +107,7 @@ Note: Completed and removed from remaining list — Schema migrations (#50), Par
 
 ## Update Log
 
+- 2025-10-25: Implemented GET /runs/{id}/summary endpoint with entity counts (stanzas, inputs, props, transforms, indexes, outputs, serverclasses). Added comprehensive tests and documentation to README. Marked API summary endpoint as completed in gap analysis.
 - 2025-10-25: Implemented API endpoints for typed listings (inputs, props, transforms, indexes, outputs, serverclasses) with pagination and filtering. Updated README with endpoint documentation. Marked API endpoints as completed in gap analysis.
 - 2025-10-25: Marked background worker (#67), retries/failure handling (#68), and normalization pipeline (#70) as completed; updated statuses and notes accordingly.
 - 2025-10-23: Typed projections completed for all types (#54, #56, #57, #58, #59, #60).

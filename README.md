@@ -863,6 +863,28 @@ curl http://localhost:8000/v1/runs/42
 # }
 ```
 
+**Get Run Summary:**
+```bash
+# Get entity count summary for a specific run
+curl http://localhost:8000/v1/runs/42/summary
+
+# Example response:
+# {
+#   "run_id": 42,
+#   "status": "complete",
+#   "stanzas": 156,
+#   "inputs": 23,
+#   "props": 45,
+#   "transforms": 12,
+#   "indexes": 8,
+#   "outputs": 5,
+#   "serverclasses": 3
+# }
+```
+
+The summary endpoint provides a quick overview of all parsed entities for a run,
+useful for frontend summary panels and progress tracking.
+
 **List Parsed Entities (Typed Listings):**
 
 After an ingestion run has been parsed and normalized, you can retrieve the typed entities:
