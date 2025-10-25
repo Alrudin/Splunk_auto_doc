@@ -1,60 +1,57 @@
-import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import runsApi from '../api/runs'
-import StatusBadge from '../components/StatusBadge'
+import { useState } from 'react'
 
 export default function RunDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
+  const [parseError, setParseError] = useState<string | null>(null)
+
   const runId = id ? parseInt(id, 10) : 0
 
   // Fetch run details
   const {
     data: run,
-    isLoading: runLoading,
-    isError: runError,
-    error: runErrorDetails,
+    isLoading,
+    isError,
+    error,
   } = useQuery({
     queryKey: ['run', runId],
     queryFn: () => runsApi.getRun(runId),
     enabled: runId > 0,
   })
 
-  // Fetch run summary
-  const {
-    data: summary,
-    isLoading: summaryLoading,
-    isError: summaryError,
-    error: summaryErrorDetails,
-  } = useQuery({
-    queryKey: ['run-summary', runId],
-    queryFn: () => runsApi.getSummary(runId),
-    enabled: runId > 0,
+  // Parse mutation
+  const parseMutation = useMutation({
+    mutationFn: (runId: number) => runsApi.triggerParse(runId),
+    onSuccess: () => {
+      setParseError(null)
+      // Invalidate and refetch run data
+      queryClient.invalidateQueries({ queryKey: ['run', runId] })
+    },
+    onError: (error: Error) => {
+      setParseError(error.message)
+    },
   })
 
-  // Invalid ID
-  if (!runId || runId < 1) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-sm text-red-800">
-          <strong>Invalid run ID:</strong> {id}
-        </p>
-        <Link
-          to="/runs"
-          className="mt-4 inline-flex items-center text-sm text-red-700 hover:text-red-900"
-        >
-          ← Back to runs
-        </Link>
-      </div>
-    )
+  const handleParse = () => {
+    if (run) {
+      parseMutation.mutate(run.id)
+    }
   }
+
+  // Determine if parse button should be enabled
+  const canParse = run?.status === 'stored'
+  const isParsing = parseMutation.isPending || run?.status === 'parsing'
+  const isComplete = run?.status === 'normalized' || run?.status === 'complete'
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <Link
           to="/runs"
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 mb-4"
         >
           <svg
             className="w-4 h-4 mr-1"
@@ -69,175 +66,175 @@ export default function RunDetailPage() {
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          Back to runs
+          Back to Runs
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Run Details</h1>
+
+        <h1 className="text-3xl font-bold text-gray-900">
+          Run Details - ID {runId}
+        </h1>
         <p className="mt-2 text-gray-600">
-          View details and parsed entity counts for run #{runId}
+          View details and manage this ingestion run
         </p>
       </div>
 
-      {/* Run Details Card */}
-      {runLoading && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex justify-center items-center py-8">
-            <svg
-              className="animate-spin h-8 w-8 text-primary-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span className="ml-3 text-gray-600">Loading run details...</span>
-          </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-12">
+          <svg
+            className="animate-spin h-8 w-8 text-primary-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span className="ml-3 text-gray-600">Loading run details...</span>
         </div>
       )}
 
-      {runError && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <p className="text-sm text-red-800">
-            <strong>Error loading run:</strong>{' '}
-            {runErrorDetails instanceof Error
-              ? runErrorDetails.message
-              : 'An unknown error occurred'}
-          </p>
-        </div>
-      )}
-
-      {run && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Run Information
-          </h2>
-          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Run ID</dt>
-              <dd className="mt-1 text-sm text-gray-900">{run.id}</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Status</dt>
-              <dd className="mt-1">
-                <StatusBadge status={run.status} />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Upload Type</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {run.upload_type}
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Label</dt>
-              <dd className="mt-1 text-sm text-gray-900">{run.label || '-'}</dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Created At</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(run.created_at).toLocaleString()}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Updated At</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(run.updated_at).toLocaleString()}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      )}
-
-      {/* Parsed Entity Counts Panel */}
-      {summaryLoading && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Parsed Entity Counts
-          </h2>
-          <div className="flex justify-center items-center py-8">
-            <svg
-              className="animate-spin h-8 w-8 text-primary-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span className="ml-3 text-gray-600">Loading summary...</span>
-          </div>
-        </div>
-      )}
-
-      {summaryError && (
+      {/* Error State */}
+      {isError && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-sm text-red-800">
-            <strong>Error loading summary:</strong>{' '}
-            {summaryErrorDetails instanceof Error
-              ? summaryErrorDetails.message
+            <strong>Error loading run:</strong>{' '}
+            {error instanceof Error
+              ? error.message
               : 'An unknown error occurred'}
           </p>
         </div>
       )}
 
-      {summary && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Parsed Entity Counts
-          </h2>
+      {/* Run Details */}
+      {run && (
+        <div className="space-y-6">
+          {/* Parse Error Message */}
+          {parseError && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <p className="text-sm text-red-800">
+                <strong>Parse Error:</strong> {parseError}
+              </p>
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <EntityCountCard
-              label="Stanzas"
-              count={summary.stanzas}
-              icon="📄"
-            />
-            <EntityCountCard label="Inputs" count={summary.inputs} icon="📥" />
-            <EntityCountCard label="Props" count={summary.props} icon="🔧" />
-            <EntityCountCard
-              label="Transforms"
-              count={summary.transforms}
-              icon="🔄"
-            />
-            <EntityCountCard
-              label="Indexes"
-              count={summary.indexes}
-              icon="📊"
-            />
-            <EntityCountCard
-              label="Outputs"
-              count={summary.outputs}
-              icon="📤"
-            />
-            <EntityCountCard
-              label="Serverclasses"
-              count={summary.serverclasses}
-              icon="🖥️"
-            />
+          {/* Parse Success Message */}
+          {parseMutation.isSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+              <p className="text-sm text-green-800">
+                <strong>Parse job started successfully!</strong> The run is now
+                being processed.
+              </p>
+            </div>
+          )}
+
+          {/* Run Information Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Run Information
+            </h2>
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Run ID</dt>
+                <dd className="mt-1 text-sm text-gray-900">{run.id}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Type</dt>
+                <dd className="mt-1">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {run.upload_type}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Status</dt>
+                <dd className="mt-1">
+                  <StatusBadge status={run.status} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Label</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {run.label || '-'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Created</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {new Date(run.created_at).toLocaleString()}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">
+                  File Count
+                </dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {run.file_count ?? '-'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Actions Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Actions
+            </h2>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleParse}
+                disabled={!canParse || isParsing || isComplete}
+                className={`inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
+                  canParse && !isParsing && !isComplete
+                    ? 'bg-primary-500 hover:bg-primary-600'
+                    : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                {isParsing && (
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                )}
+                {isParsing ? 'Parsing...' : 'Parse Run'}
+              </button>
+              {!canParse && !isParsing && !isComplete && (
+                <p className="text-sm text-gray-500">
+                  Only runs with 'stored' status can be parsed.
+                </p>
+              )}
+              {isComplete && (
+                <p className="text-sm text-gray-500">
+                  This run has already been parsed.
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -245,20 +242,35 @@ export default function RunDetailPage() {
   )
 }
 
-interface EntityCountCardProps {
-  label: string
-  count: number
-  icon: string
+interface StatusBadgeProps {
+  status: string
 }
 
-function EntityCountCard({ label, count, icon }: EntityCountCardProps) {
+function StatusBadge({ status }: StatusBadgeProps) {
+  const statusLower = status.toLowerCase()
+
+  let colorClasses = 'bg-gray-100 text-gray-800'
+  if (
+    statusLower === 'complete' ||
+    statusLower === 'normalized' ||
+    statusLower === 'success'
+  ) {
+    colorClasses = 'bg-green-100 text-green-800'
+  } else if (
+    statusLower === 'pending' ||
+    statusLower === 'stored' ||
+    statusLower === 'parsing'
+  ) {
+    colorClasses = 'bg-yellow-100 text-yellow-800'
+  } else if (statusLower === 'failed' || statusLower === 'error') {
+    colorClasses = 'bg-red-100 text-red-800'
+  }
+
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-2xl">{icon}</span>
-        <span className="text-2xl font-bold text-gray-900">{count}</span>
-      </div>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-    </div>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClasses}`}
+    >
+      {status}
+    </span>
   )
 }

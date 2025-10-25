@@ -1,236 +1,211 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import RunDetailPage from '../pages/RunDetailPage'
 import runsApi from '../api/runs'
 
-// Mock the runs API
+// Mock the runsApi module
 vi.mock('../api/runs', () => ({
   default: {
     getRun: vi.fn(),
-    getSummary: vi.fn(),
+    triggerParse: vi.fn(),
   },
 }))
 
-const createWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
+describe('RunDetailPage', () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
       },
-    },
+    })
+    vi.clearAllMocks()
   })
 
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/runs/:id" element={children} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
-  )
-}
+  const renderWithRouter = (runId: string) => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/runs/${runId}`]}>
+          <Routes>
+            <Route path="/runs/:id" element={<RunDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    )
+  }
 
-describe('RunDetailPage', () => {
-  it('should render loading state initially', () => {
+  it('displays loading state initially', () => {
     vi.mocked(runsApi.getRun).mockImplementation(
       () => new Promise(() => {}) // Never resolves
     )
-    vi.mocked(runsApi.getSummary).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
-    )
 
-    // Navigate to a specific run ID
-    window.history.pushState({}, 'Test', '/runs/123')
+    renderWithRouter('1')
 
-    render(<RunDetailPage />, { wrapper: createWrapper() })
-
-    expect(screen.getByText('Loading run details...')).toBeDefined()
-    expect(screen.getByText('Loading summary...')).toBeDefined()
+    expect(screen.getByText(/Loading run details/i)).toBeDefined()
   })
 
-  it('should render run details when data is loaded', async () => {
+  it('displays run details when loaded', async () => {
     const mockRun = {
-      id: 123,
+      id: 1,
       upload_type: 'ds_etc' as const,
       label: 'Test Run',
-      status: 'complete',
+      status: 'stored',
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T01:00:00Z',
-    }
-
-    const mockSummary = {
-      run_id: 123,
-      status: 'complete',
-      stanzas: 100,
-      inputs: 10,
-      props: 20,
-      transforms: 15,
-      indexes: 5,
-      outputs: 8,
-      serverclasses: 3,
+      updated_at: '2024-01-01T00:00:00Z',
+      file_count: 5,
     }
 
     vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
-    vi.mocked(runsApi.getSummary).mockResolvedValue(mockSummary)
 
-    window.history.pushState({}, 'Test', '/runs/123')
+    renderWithRouter('1')
 
-    render(<RunDetailPage />, { wrapper: createWrapper() })
-
+    // Wait for the details to load - check for the parse button instead
     await waitFor(() => {
-      expect(screen.getByText('Run Information')).toBeDefined()
+      expect(screen.getByRole('button', { name: /Parse Run/i })).toBeDefined()
     })
 
-    expect(screen.getByText('Test Run')).toBeDefined()
+    // Now check that the data is displayed
     expect(screen.getByText('ds_etc')).toBeDefined()
+    expect(screen.getByText('stored')).toBeDefined()
   })
 
-  it('should render summary counts when data is loaded', async () => {
-    const mockRun = {
-      id: 123,
-      upload_type: 'ds_etc' as const,
-      label: 'Test Run',
-      status: 'complete',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T01:00:00Z',
-    }
-
-    const mockSummary = {
-      run_id: 123,
-      status: 'complete',
-      stanzas: 100,
-      inputs: 10,
-      props: 20,
-      transforms: 15,
-      indexes: 5,
-      outputs: 8,
-      serverclasses: 3,
-    }
-
-    vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
-    vi.mocked(runsApi.getSummary).mockResolvedValue(mockSummary)
-
-    window.history.pushState({}, 'Test', '/runs/123')
-
-    render(<RunDetailPage />, { wrapper: createWrapper() })
-
-    // Wait for both run and summary to load
-    await waitFor(() => {
-      expect(screen.getByText('Parsed Entity Counts')).toBeDefined()
-      expect(screen.queryByText('Loading summary...')).toBeNull()
-    })
-
-    // Check that all counts are displayed
-    expect(screen.getByText('Stanzas')).toBeDefined()
-    expect(screen.getByText('Inputs')).toBeDefined()
-    expect(screen.getByText('Props')).toBeDefined()
-    expect(screen.getByText('Transforms')).toBeDefined()
-    expect(screen.getByText('Indexes')).toBeDefined()
-    expect(screen.getByText('Outputs')).toBeDefined()
-    expect(screen.getByText('Serverclasses')).toBeDefined()
-
-    // Check that count values are displayed
-    expect(screen.getByText('100')).toBeDefined() // stanzas
-    expect(screen.getByText('10')).toBeDefined() // inputs
-    expect(screen.getByText('20')).toBeDefined() // props
-    expect(screen.getByText('15')).toBeDefined() // transforms
-    expect(screen.getByText('5')).toBeDefined() // indexes
-    expect(screen.getByText('8')).toBeDefined() // outputs
-    expect(screen.getByText('3')).toBeDefined() // serverclasses
-  })
-
-  it('should render error when run fetch fails', async () => {
+  it('displays error when run fails to load', async () => {
     vi.mocked(runsApi.getRun).mockRejectedValue(new Error('Run not found'))
-    vi.mocked(runsApi.getSummary).mockResolvedValue({
-      run_id: 123,
-      status: 'complete',
-      stanzas: 0,
-      inputs: 0,
-      props: 0,
-      transforms: 0,
-      indexes: 0,
-      outputs: 0,
-      serverclasses: 0,
-    })
 
-    window.history.pushState({}, 'Test', '/runs/123')
-
-    render(<RunDetailPage />, { wrapper: createWrapper() })
+    renderWithRouter('999')
 
     await waitFor(() => {
-      expect(screen.getByText(/Error loading run/)).toBeDefined()
+      expect(screen.getByText(/Error loading run/i)).toBeDefined()
     })
-
-    expect(screen.getByText(/Run not found/)).toBeDefined()
+    expect(screen.getByText(/Run not found/i)).toBeDefined()
   })
 
-  it('should render error when summary fetch fails', async () => {
+  it('enables parse button for stored runs', async () => {
     const mockRun = {
-      id: 123,
+      id: 1,
       upload_type: 'ds_etc' as const,
-      label: 'Test Run',
-      status: 'complete',
+      status: 'stored',
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T01:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
     }
 
     vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
-    vi.mocked(runsApi.getSummary).mockRejectedValue(
-      new Error('Failed to fetch summary')
-    )
 
-    window.history.pushState({}, 'Test', '/runs/123')
-
-    render(<RunDetailPage />, { wrapper: createWrapper() })
+    renderWithRouter('1')
 
     await waitFor(() => {
-      expect(screen.getByText(/Error loading summary/)).toBeDefined()
+      const parseButton = screen.getByRole('button', { name: /Parse Run/i })
+      expect(parseButton).toBeDefined()
+      expect(parseButton.hasAttribute('disabled')).toBe(false)
     })
-
-    expect(screen.getByText(/Failed to fetch summary/)).toBeDefined()
   })
 
-  it('should render error for invalid run ID', () => {
-    window.history.pushState({}, 'Test', '/runs/invalid')
-
-    render(<RunDetailPage />, { wrapper: createWrapper() })
-
-    expect(screen.getByText(/Invalid run ID/)).toBeDefined()
-    expect(screen.getByText(/Back to runs/)).toBeDefined()
-  })
-
-  it('should have back to runs link', async () => {
+  it('disables parse button for parsing runs', async () => {
     const mockRun = {
-      id: 123,
+      id: 1,
       upload_type: 'ds_etc' as const,
-      label: 'Test Run',
-      status: 'complete',
+      status: 'parsing',
       created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T01:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
     }
 
     vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
-    vi.mocked(runsApi.getSummary).mockResolvedValue({
-      run_id: 123,
+
+    renderWithRouter('1')
+
+    await waitFor(() => {
+      const parseButton = screen.getByRole('button', { name: /Parsing.../i })
+      expect(parseButton).toBeDefined()
+      expect(parseButton.hasAttribute('disabled')).toBe(true)
+    })
+  })
+
+  it('disables parse button for complete runs', async () => {
+    const mockRun = {
+      id: 1,
+      upload_type: 'ds_etc' as const,
       status: 'complete',
-      stanzas: 0,
-      inputs: 0,
-      props: 0,
-      transforms: 0,
-      indexes: 0,
-      outputs: 0,
-      serverclasses: 0,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    }
+
+    vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
+
+    renderWithRouter('1')
+
+    await waitFor(() => {
+      const parseButton = screen.getByRole('button', { name: /Parse Run/i })
+      expect(parseButton.hasAttribute('disabled')).toBe(true)
     })
 
-    window.history.pushState({}, 'Test', '/runs/123')
+    expect(screen.getByText(/This run has already been parsed/i)).toBeDefined()
+  })
 
-    render(<RunDetailPage />, { wrapper: createWrapper() })
+  it('disables parse button for normalized runs', async () => {
+    const mockRun = {
+      id: 1,
+      upload_type: 'ds_etc' as const,
+      status: 'normalized',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    }
 
-    const backLinks = screen.getAllByText(/Back to runs/)
-    expect(backLinks.length).toBeGreaterThan(0)
-    expect(backLinks[0].closest('a')).toHaveProperty('href')
+    vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
+
+    renderWithRouter('1')
+
+    await waitFor(() => {
+      const parseButton = screen.getByRole('button', { name: /Parse Run/i })
+      expect(parseButton.hasAttribute('disabled')).toBe(true)
+    })
+
+    expect(screen.getByText(/This run has already been parsed/i)).toBeDefined()
+  })
+
+  it('disables parse button for failed runs', async () => {
+    const mockRun = {
+      id: 1,
+      upload_type: 'ds_etc' as const,
+      status: 'failed',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    }
+
+    vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
+
+    renderWithRouter('1')
+
+    await waitFor(() => {
+      const parseButton = screen.getByRole('button', { name: /Parse Run/i })
+      expect(parseButton.hasAttribute('disabled')).toBe(true)
+    })
+
+    expect(
+      screen.getByText(/Only runs with 'stored' status can be parsed/i)
+    ).toBeDefined()
+  })
+
+  it('has back to runs link', async () => {
+    const mockRun = {
+      id: 1,
+      upload_type: 'ds_etc' as const,
+      status: 'stored',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    }
+
+    vi.mocked(runsApi.getRun).mockResolvedValue(mockRun)
+
+    renderWithRouter('1')
+
+    await waitFor(() => {
+      const backLink = screen.getByText(/Back to Runs/i)
+      expect(backLink).toBeDefined()
+      expect(backLink.closest('a')).toHaveProperty('href')
+    })
   })
 })

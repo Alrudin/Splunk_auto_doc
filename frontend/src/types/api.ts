@@ -40,14 +40,9 @@ export interface PaginatedResponse<T> {
   pages: number
 }
 
-export interface RunSummary {
+export interface ParseResponse {
   run_id: number
   status: string
-  stanzas: number
-  inputs: number
-  props: number
-  transforms: number
-  indexes: number
-  outputs: number
-  serverclasses: number
+  task_id: string
+  message: string
 }

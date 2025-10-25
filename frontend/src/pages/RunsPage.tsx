@@ -151,7 +151,7 @@ export default function RunsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link
                         to={`/runs/${run.id}`}
-                        className="text-primary-600 hover:text-primary-900"
+                        className="text-primary-600 hover:text-primary-700"
                       >
                         {run.id}
                       </Link>

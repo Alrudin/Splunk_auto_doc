@@ -115,6 +115,31 @@ The Run Detail page displays comprehensive information about a specific ingestio
 - **Invalid Run ID**: If the URL contains an invalid run ID, an error message is displayed
 - **Run Not Found**: If the run ID doesn't exist in the database (404 error)
 - **Summary Fetch Failed**: If the summary endpoint returns an error
+- **Run Detail** (`/runs/:id`) - View details for a specific run and trigger parsing
+
+## Features
+
+### Parse Button
+
+The Run Detail page includes a "Parse" button that allows users to trigger parsing of uploaded configuration files.
+
+**Button Behavior:**
+- **Enabled** when run status is `stored` - Ready to be parsed
+- **Disabled** for other statuses:
+  - `parsing` - Parse job already in progress
+  - `normalized` or `complete` - Already parsed successfully
+  - `failed` or `pending` - Not in a valid state for parsing
+
+**Usage:**
+1. Navigate to the Runs page (`/runs`)
+2. Click on a run ID to view its details
+3. If the run has `stored` status, click the "Parse" button
+4. The button will show a loading state while the parse job is enqueued
+5. On success, you'll see a confirmation message
+6. On error, an error message will be displayed
+
+**API Endpoint:**
+The Parse button sends a POST request to `/v1/runs/{id}/parse` which enqueues a Celery background task to parse the configuration files.
 
 ## API Integration
 
