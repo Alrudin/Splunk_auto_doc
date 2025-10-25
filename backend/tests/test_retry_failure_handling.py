@@ -95,7 +95,9 @@ def malformed_archive(tmp_path):
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
 def test_permanent_error_no_retry(retry_test_db, test_storage):
     """Test that permanent errors are not retried."""
     # Create run without files (permanent error condition)
@@ -113,9 +115,11 @@ def test_permanent_error_no_retry(retry_test_db, test_storage):
 
     # Should raise PermanentError for no files
     # Call the task function directly and patch SessionLocal to use test DB
-    with patch('app.core.db.SessionLocal', return_value=retry_test_db), \
-         pytest.raises(PermanentError, match="No files found"):
-        parse_run.run(run.id)    # Verify run marked as failed
+    with (
+        patch("app.core.db.SessionLocal", return_value=retry_test_db),
+        pytest.raises(PermanentError, match="No files found"),
+    ):
+        parse_run.run(run.id)  # Verify run marked as failed
     retry_test_db.refresh(run)
     assert run.status == IngestionStatus.FAILED
     assert "Permanent error" in run.error_message
@@ -124,7 +128,9 @@ def test_permanent_error_no_retry(retry_test_db, test_storage):
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
 def test_transient_error_with_retry(retry_test_db, test_storage, sample_conf_archive):
     """Test that transient errors trigger retries with exponential backoff."""
     # Create run with files
@@ -165,7 +171,7 @@ def test_transient_error_with_retry(retry_test_db, test_storage, sample_conf_arc
         return test_storage.retrieve_blob(key)
 
     with (
-        patch('app.core.db.SessionLocal', return_value=retry_test_db),
+        patch("app.core.db.SessionLocal", return_value=retry_test_db),
         patch.object(test_storage, "retrieve_blob", side_effect=mock_retrieve_blob),
         pytest.raises(Retry),
     ):  # Will raise retry exception
@@ -179,8 +185,12 @@ def test_transient_error_with_retry(retry_test_db, test_storage, sample_conf_arc
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
-def test_malformed_archive_permanent_error(retry_test_db, test_storage, malformed_archive):
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
+def test_malformed_archive_permanent_error(
+    retry_test_db, test_storage, malformed_archive
+):
     """Test that malformed archives raise permanent errors."""
     run = IngestionRun(
         type=IngestionType.APP_BUNDLE,
@@ -209,8 +219,10 @@ def test_malformed_archive_permanent_error(retry_test_db, test_storage, malforme
     task._db = retry_test_db
 
     # Should raise PermanentError
-    with patch('app.core.db.SessionLocal', return_value=retry_test_db), \
-         pytest.raises(PermanentError, match="Invalid archive format"):
+    with (
+        patch("app.core.db.SessionLocal", return_value=retry_test_db),
+        pytest.raises(PermanentError, match="Invalid archive format"),
+    ):
         parse_run.run(run.id)
 
     # Verify run marked as failed
@@ -220,7 +232,9 @@ def test_malformed_archive_permanent_error(retry_test_db, test_storage, malforme
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
 def test_idempotency_on_retry(retry_test_db, test_storage, sample_conf_archive):
     """Test that retrying a task doesn't create duplicate stanzas."""
     run = IngestionRun(
@@ -250,7 +264,7 @@ def test_idempotency_on_retry(retry_test_db, test_storage, sample_conf_archive):
     task._db = retry_test_db
 
     # Run task first time
-    with patch('app.core.db.SessionLocal', return_value=retry_test_db):
+    with patch("app.core.db.SessionLocal", return_value=retry_test_db):
         result1 = parse_run.run(run.id)
         initial_stanza_count = result1["stanzas_created"]
 
@@ -279,7 +293,9 @@ def test_idempotency_on_retry(retry_test_db, test_storage, sample_conf_archive):
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
 def test_heartbeat_updates(retry_test_db, test_storage, sample_conf_archive):
     """Test that heartbeat timestamps are updated during task execution."""
     run = IngestionRun(
@@ -309,7 +325,7 @@ def test_heartbeat_updates(retry_test_db, test_storage, sample_conf_archive):
     task._db = retry_test_db
 
     # Run task
-    with patch('app.core.db.SessionLocal', return_value=retry_test_db):
+    with patch("app.core.db.SessionLocal", return_value=retry_test_db):
         # result = parse_run.run(run.id)
         pass
 
@@ -322,8 +338,12 @@ def test_heartbeat_updates(retry_test_db, test_storage, sample_conf_archive):
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
 def test_metrics_collection(retry_test_db, test_storage, sample_conf_archive):
     """Test that execution metrics are collected and stored."""
     run = IngestionRun(
@@ -353,7 +373,7 @@ def test_metrics_collection(retry_test_db, test_storage, sample_conf_archive):
     task._db = retry_test_db
 
     # Run task
-    with patch('app.core.db.SessionLocal', return_value=retry_test_db):
+    with patch("app.core.db.SessionLocal", return_value=retry_test_db):
         # result = parse_run.run(run.id)
         pass
 
@@ -370,8 +390,12 @@ def test_metrics_collection(retry_test_db, test_storage, sample_conf_archive):
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
-@pytest.mark.skip(reason="Complex integration test - requires proper task isolation setup")
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
+@pytest.mark.skip(
+    reason="Complex integration test - requires proper task isolation setup"
+)
 def test_already_completed_idempotency(test_db):
     """Test that already completed runs are skipped (idempotent)."""
     # Create a session from the test database sessionmaker
