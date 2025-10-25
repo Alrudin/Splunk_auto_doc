@@ -156,6 +156,7 @@ export default function RunsPage() {
                       <Link
                         to={`/runs/${run.id}`}
                         className="text-primary-600 hover:text-primary-800"
+                        className="text-primary-600 hover:text-primary-700"
                       >
                         {run.id}
                       </Link>

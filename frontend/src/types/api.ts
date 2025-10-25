@@ -51,4 +51,9 @@ export interface ParseStatusResponse {
     parse_errors: number
     duration_seconds: number
   } | null
+export interface ParseResponse {
+  run_id: number
+  status: string
+  task_id: string
+  message: string
 }

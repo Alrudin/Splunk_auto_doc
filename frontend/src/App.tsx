@@ -26,7 +26,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="upload" element={<UploadPage />} />
             <Route path="runs" element={<RunsPage />} />
-            <Route path="runs/:runId" element={<RunDetailPage />} />
+            <Route path="runs/:id" element={<RunDetailPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
