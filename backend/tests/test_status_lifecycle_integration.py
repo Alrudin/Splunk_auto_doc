@@ -1,8 +1,6 @@
 """Integration tests for status lifecycle with worker."""
 
 import tarfile
-import time
-from pathlib import Path
 
 import pytest
 
@@ -11,7 +9,7 @@ import tests.ensure_models  # noqa: F401
 
 # Try to import dependencies
 try:
-    from app.core.db import Base, get_db
+    from app.core.db import Base
     from app.models.file import File as FileModel
     from app.models.ingestion_run import IngestionRun, IngestionStatus, IngestionType
     from app.models.stanza import Stanza
@@ -104,6 +102,30 @@ FORMAT = result
     return archive_path
 
 
+def create_test_task(test_db, task_id="test-task-id"):
+    """Helper to create a DatabaseTask for testing.
+    
+    Args:
+        test_db: Test database session
+        task_id: Mock Celery task ID
+        
+    Returns:
+        DatabaseTask instance ready for testing
+    """
+    from app.worker.tasks import DatabaseTask
+
+    task = DatabaseTask()
+    task._db = test_db
+
+    # Mock the request object that Celery would provide
+    class MockRequest:
+        id = task_id
+        retries = 0
+
+    task.request = MockRequest()
+    return task
+
+
 @pytest.mark.integration
 def test_status_lifecycle_through_worker(test_db, test_storage, sample_conf_archive):
     """Test that worker transitions through all status states correctly."""
@@ -139,17 +161,7 @@ def test_status_lifecycle_through_worker(test_db, test_storage, sample_conf_arch
     # Execute the parse_run task synchronously
     # Note: We're calling the task function directly instead of using celery
     # to avoid needing a running celery worker for tests
-    from app.worker.tasks import DatabaseTask
-
-    task = DatabaseTask()
-    task._db = test_db
-
-    # Mock the request object that Celery would provide
-    class MockRequest:
-        id = "test-task-id"
-        retries = 0
-
-    task.request = MockRequest()
+    task = create_test_task(test_db, "test-task-id")
 
     # Execute the task
     result = parse_run(task, run_id)
@@ -205,18 +217,8 @@ def test_normalized_status_is_set(test_db, test_storage, sample_conf_archive):
     test_db.add(file_record)
     test_db.commit()
 
-    # Track status changes by querying before/during/after
-    # For this test, we'll check that the final metrics indicate typed projections were created
-    from app.worker.tasks import DatabaseTask
-
-    task = DatabaseTask()
-    task._db = test_db
-
-    class MockRequest:
-        id = "test-task-id-normalized"
-        retries = 0
-
-    task.request = MockRequest()
+    # Execute task to verify normalized status and typed projections
+    task = create_test_task(test_db, "test-task-id-normalized")
 
     # Execute the task
     result = parse_run(task, run_id)
@@ -268,16 +270,7 @@ def test_status_persists_summary_counts(test_db, test_storage, sample_conf_archi
     test_db.commit()
 
     # Execute task
-    from app.worker.tasks import DatabaseTask
-
-    task = DatabaseTask()
-    task._db = test_db
-
-    class MockRequest:
-        id = "test-task-id-summary"
-        retries = 0
-
-    task.request = MockRequest()
+    task = create_test_task(test_db, "test-task-id-summary")
 
     result = parse_run(task, run_id)
 
@@ -325,16 +318,8 @@ def test_error_status_on_failure(test_db, test_storage):
 
     # Execute task
     from app.worker.exceptions import PermanentError
-    from app.worker.tasks import DatabaseTask
 
-    task = DatabaseTask()
-    task._db = test_db
-
-    class MockRequest:
-        id = "test-task-id-error"
-        retries = 0
-
-    task.request = MockRequest()
+    task = create_test_task(test_db, "test-task-id-error")
 
     # Task should raise PermanentError
     with pytest.raises(PermanentError):
