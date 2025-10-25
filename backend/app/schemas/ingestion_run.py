@@ -70,3 +70,17 @@ class IngestionRunStatusUpdate(BaseModel):
 
     status: IngestionStatus = Field(description="New status to set")
     error_message: str | None = Field(None, description="Optional error message")
+
+
+class IngestionRunSummaryResponse(BaseModel):
+    """Schema for run summary API response with entity counts."""
+
+    run_id: int = Field(description="Unique identifier for the ingestion run")
+    status: IngestionStatus = Field(description="Current status of the ingestion run")
+    stanzas: int = Field(description="Total count of parsed stanzas")
+    inputs: int = Field(description="Count of input configurations")
+    props: int = Field(description="Count of props configurations")
+    transforms: int = Field(description="Count of transform configurations")
+    indexes: int = Field(description="Count of index configurations")
+    outputs: int = Field(description="Count of output configurations")
+    serverclasses: int = Field(description="Count of serverclass configurations")

@@ -83,3 +83,72 @@ class TestRunsEndpointUnit:
         """Test that getting a non-existent run returns 404."""
         response = client.get("/v1/runs/99999")
         assert response.status_code == 404
+
+    def test_runs_summary_endpoint_exists(self, client):
+        """Test that run summary endpoint is registered."""
+        # Should return 404 for non-existent run, confirming endpoint exists
+        response = client.get("/v1/runs/99999/summary")
+        assert response.status_code == 404
+
+    def test_runs_summary_nonexistent_returns_404(self, client):
+        """Test that getting summary for non-existent run returns 404."""
+        response = client.get("/v1/runs/99999/summary")
+        assert response.status_code == 404
+        data = response.json()
+        assert "detail" in data
+
+    def test_runs_summary_invalid_id_returns_400(self, client):
+        """Test that invalid run_id returns 400."""
+        response = client.get("/v1/runs/0/summary")
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert "positive integer" in data["detail"].lower()
+
+    def test_runs_summary_structure(self, client, db_session):
+        """Test that run summary has expected structure."""
+        from app.models.ingestion_run import IngestionRun, IngestionStatus, IngestionType
+
+        # Create a test run
+        run = IngestionRun(
+            type=IngestionType.DS_ETC,
+            status=IngestionStatus.COMPLETE,
+            label="Test Run",
+        )
+        db_session.add(run)
+        db_session.commit()
+
+        response = client.get(f"/v1/runs/{run.id}/summary")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should have all required fields
+        assert "run_id" in data
+        assert data["run_id"] == run.id
+        assert "status" in data
+        assert data["status"] == "complete"
+        assert "stanzas" in data
+        assert "inputs" in data
+        assert "props" in data
+        assert "transforms" in data
+        assert "indexes" in data
+        assert "outputs" in data
+        assert "serverclasses" in data
+
+        # All counts should be integers
+        assert isinstance(data["stanzas"], int)
+        assert isinstance(data["inputs"], int)
+        assert isinstance(data["props"], int)
+        assert isinstance(data["transforms"], int)
+        assert isinstance(data["indexes"], int)
+        assert isinstance(data["outputs"], int)
+        assert isinstance(data["serverclasses"], int)
+
+        # For new run with no data, all counts should be 0
+        assert data["stanzas"] == 0
+        assert data["inputs"] == 0
+        assert data["props"] == 0
+        assert data["transforms"] == 0
+        assert data["indexes"] == 0
+        assert data["outputs"] == 0
+        assert data["serverclasses"] == 0
