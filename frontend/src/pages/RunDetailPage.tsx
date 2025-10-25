@@ -2,6 +2,10 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import runsApi from '../api/runs'
 
+// Polling configuration
+const POLL_INTERVAL_MS = 2000
+const POLLING_STATUSES = ['parsing', 'normalized']
+
 export default function RunDetailPage() {
   const { runId } = useParams<{ runId: string }>()
 
@@ -26,9 +30,9 @@ export default function RunDetailPage() {
     enabled: runIdNumber > 0,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      // Poll every 2 seconds while parsing
-      if (status === 'parsing' || status === 'normalized') {
-        return 2000
+      // Poll while status is in a non-terminal state
+      if (status && POLLING_STATUSES.includes(status)) {
+        return POLL_INTERVAL_MS
       }
       // Stop polling for terminal states
       return false

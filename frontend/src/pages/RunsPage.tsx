@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import runsApi from '../api/runs'
 
 export default function RunsPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const success = searchParams.get('success')
   const runId = searchParams.get('runId')
 
@@ -149,7 +150,7 @@ export default function RunsPage() {
                   <tr
                     key={run.id}
                     className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => (window.location.href = `/runs/${run.id}`)}
+                    onClick={() => navigate(`/runs/${run.id}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <Link
