@@ -54,7 +54,7 @@ describe('RunDetailPage', () => {
   it('should render run details when data is loaded', async () => {
     const mockRun = {
       id: 123,
-      upload_type: 'ds_etc',
+      upload_type: 'ds_etc' as const,
       label: 'Test Run',
       status: 'complete',
       created_at: '2024-01-01T00:00:00Z',
@@ -91,7 +91,7 @@ describe('RunDetailPage', () => {
   it('should render summary counts when data is loaded', async () => {
     const mockRun = {
       id: 123,
-      upload_type: 'ds_etc',
+      upload_type: 'ds_etc' as const,
       label: 'Test Run',
       status: 'complete',
       created_at: '2024-01-01T00:00:00Z',
@@ -170,7 +170,7 @@ describe('RunDetailPage', () => {
   it('should render error when summary fetch fails', async () => {
     const mockRun = {
       id: 123,
-      upload_type: 'ds_etc',
+      upload_type: 'ds_etc' as const,
       label: 'Test Run',
       status: 'complete',
       created_at: '2024-01-01T00:00:00Z',
@@ -205,7 +205,7 @@ describe('RunDetailPage', () => {
   it('should have back to runs link', async () => {
     const mockRun = {
       id: 123,
-      upload_type: 'ds_etc',
+      upload_type: 'ds_etc' as const,
       label: 'Test Run',
       status: 'complete',
       created_at: '2024-01-01T00:00:00Z',
