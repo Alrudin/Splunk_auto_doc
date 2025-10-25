@@ -1,6 +1,6 @@
 # Milestone 2 Gap Analysis & Issue Mapping
 
-Date: 2025-10-07 (status update: 2025-10-23)
+Date: 2025-10-07 (status update: 2025-10-25)
 Author: @Alrudin (compiled with Copilot assistant)
 
 ## Purpose
@@ -23,42 +23,40 @@ Milestone 2 focuses on:
 - Background job to parse and persist results
 - Minimal API + UI for triggering and viewing parsed counts
 
-Current state: Core parsing and all typed projections are complete; remaining work centers on orchestration (normalization pipeline), worker execution, APIs/UI, CI, and documentation hardening.
+Current state: Core parsing and all typed projections are complete. Background worker (with retries) and the end-to-end normalization pipeline are now complete. Remaining work centers on run status lifecycle wiring, APIs/UI, broader observability, CI, and documentation hardening.
 
 ---
 
 ## Plan Sections vs Tracking Status
 
-| Plan Element / Deliverable                                                    | Present? | Covered By                                   | Gap / Notes                                                                                 |
-|-------------------------------------------------------------------------------|:--------:|----------------------------------------------|---------------------------------------------------------------------------------------------|
-| Schema migrations: `stanzas` + typed tables + indexes                         |   Yes    | Issue #50 (closed, completed)                 | Delivered via Alembic migrations (002/003). Docs updated; unblocks downstream               |
-| Parser core: files → ordered stanzas (comments, continuation, repeats)        |   Yes    | Issue #52 (closed)                            | Tokenizer/assembler + comprehensive unit tests delivered                                    |
-| Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   Yes    | Issues #54, #56, #57, #58, #59, #60 (closed)  | Completed for all six types with tests and docs updates                                      |
-| Normalization pipeline: unpack → walk → parse → bulk insert                   |   No     | –                                            | Service orchestration, provenance, performance via bulk insert                               |
-| Background worker: Redis + Celery/RQ, parse task with retries                 |   No     | –                                            | Worker service + task wiring + observability                                                 |
-| Run status lifecycle: stored → parsing → normalized → complete/failed         |   No     | –                                            | Extend enums/values and transitions; persist summary counts                                  |
-| API: trigger parse, status, summary, typed listings                           |   No     | –                                            | Endpoints: POST /runs/{id}/parse, GET /parse-status, GET /summary, typed listings            |
-| Frontend: Run detail “Parse” button, status polling, counts panel             |   No     | –                                            | Minimal UI to monitor and inspect parsed artifacts                                           |
-| Observability: structured logs, metrics, extraction guardrails                |   No     | –                                            | Time metrics, per-file progress logs; safety checks for zip/tar                              |
-| Fixtures & tests: golden fixtures, property tests, integration                |  Partial | #52, #54, #56, #57, #58, #59, #60 (closed)    | Parser + typed projection tests done; integration for pipeline/worker to follow              |
-| CI pipeline updates: parser/unit/property/integration                         |   No     | –                                            | Add jobs; optional performance smoke                                                         |
-| Documentation: parser spec, normalization model, ADR-002                      |  Partial | #52, typed projection issues (closed)         | Parser spec and normalization model updated; ADR-002 and end-to-end examples outstanding     |
+| Plan Element / Deliverable                                                    | Present? | Covered By                                                         | Gap / Notes                                                                                 |
+|-------------------------------------------------------------------------------|:--------:|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| Schema migrations: `stanzas` + typed tables + indexes                         |   Yes    | #50 (closed, completed)                                            | Delivered via Alembic migrations (002/003). Docs updated; unblocks downstream               |
+| Parser core: files → ordered stanzas (comments, continuation, repeats)        |   Yes    | #52 (closed)                                                       | Tokenizer/assembler + comprehensive unit tests delivered                                    |
+| Typed projections: inputs/props/transforms/indexes/outputs/serverclasses      |   Yes    | #54, #56, #57, #58, #59, #60 (all closed)                          | Completed for all six types with tests and docs updates                                      |
+| Normalization pipeline: unpack → walk → parse → bulk insert                   |   Yes    | #70 (closed)                                                       | End-to-end orchestration complete; bulk insert with provenance and counts                    |
+| Background worker: Redis + Celery/RQ, parse task with retries                 |   Yes    | #67 (worker service closed), #68 (retries/failure handling closed) | Worker service, retries/backoff, visibility/health, logs/metrics implemented                |
+| Run status lifecycle: stored → parsing → normalized → complete/failed         |   No     | –                                                                  | Extend enums/values and transitions; persist summary counts                                  |
+| API: trigger parse, status, summary, typed listings                           |   No     | –                                                                  | Endpoints: POST /runs/{id}/parse, GET /parse-status, GET /summary, typed listings            |
+| Frontend: Run detail “Parse” button, status polling, counts panel             |   No     | –                                                                  | Minimal UI to monitor and inspect parsed artifacts                                           |
+| Observability: structured logs, metrics, extraction guardrails                |  Partial | #67, #68, #70 (closed)                                             | Worker metrics/logs and pipeline guardrails done; extend system-wide metrics and dashboards  |
+| Fixtures & tests: golden fixtures, property tests, integration                |   Yes    | #52, #54, #56, #57, #58, #59, #60, #70 (closed)                    | Parser + typed projection + pipeline integration tests in place                              |
+| CI pipeline updates: parser/unit/property/integration                         |   No     | –                                                                  | Add jobs; optional performance smoke                                                         |
+| Documentation: parser spec, normalization model, ADR-002                      |  Partial | #52, typed projection issues, #70 (closed)                         | Parser spec and normalization model updated; ADR-002 and end-to-end examples outstanding     |
 
 ---
 
 ## Recommended New/Remaining Issues (M2)
 
 - Milestone 2 Meta Tracking Issue (Parser & Normalization)
-- Normalization pipeline: unpack → parse → bulk insert with provenance and counts
-- Background worker: Redis + Celery/RQ service; `parse_run(run_id)` task with retries/backoff
+- Run status lifecycle: extend states and transitions; persist summary counts
 - API endpoints: POST /runs/{id}/parse; GET /runs/{id}/parse-status; GET /runs/{id}/summary; typed listings
 - Frontend: Add parse trigger on Run detail; live status; parsed counts display
-- Observability & safety: structured logs for parse lifecycle; extraction guardrails (size/file-count/depth, disallow symlinks)
-- Fixtures and tests: end-to-end integration (upload → parse → project → assert DB) and performance fixtures
-- CI updates: add parser/test jobs; optional performance smoke
-- Documentation: `docs/normalization-model.md` deep-dive examples across all types; ADR-002 (parser approach & trade-offs)
+- Observability: extend system-wide metrics/dashboards; performance budgets in CI
+- CI updates: add integration jobs for worker/pipeline; optional performance smoke
+- Documentation: ADR-002 (parser approach & trade-offs); end-to-end examples across all types
 
-Note: The Alembic migration work is complete via Issue #50 (closed) and removed from the remaining issues list. Parser core is complete via Issue #52 (closed). Typed projections are complete via Issues #54, #56, #57, #58, #59, #60 (all closed).
+Note: Completed and removed from remaining list — Schema migrations (#50), Parser core (#52), Typed projections (#54/#56/#57/#58/#59/#60), Background worker and retries (#67/#68), Normalization pipeline (#70).
 
 ---
 
@@ -92,7 +90,7 @@ Note: The Alembic migration work is complete via Issue #50 (closed) and removed 
 ## Status Rollup (latest)
 
 - Planning: In progress
-- Implementation: Parser core complete (Issue #52); Typed projections complete (#54, #56, #57, #58, #59, #60)
+- Implementation: Parser core complete (#52); Typed projections complete (#54/#56/#57/#58/#59/#60); Background worker + retries complete (#67/#68); Normalization pipeline complete (#70)
 - Issues/PRs (closed relevant to M2):
   - #50 — Schema migrations: stanzas + typed tables + indexes
   - #52 — Parser core
@@ -102,12 +100,16 @@ Note: The Alembic migration work is complete via Issue #50 (closed) and removed 
   - #58 — Typed projection: serverclass.conf
   - #59 — Typed projection: indexes.conf
   - #60 — Typed projection: transforms.conf
+  - #67 — Background worker service
+  - #68 — Worker retries and failure handling
+  - #70 — Normalization pipeline
 - Blockers: None identified
 
 ---
 
 ## Update Log
 
-- 2025-10-23: Marked typed projections complete for all types; closed issues: #54, #56, #57, #58, #59, #60.
-- 2025-10-19: Marked schema migrations as Present=Yes (Issue #50 closed) and parser core complete (Issue #52 closed).
+- 2025-10-25: Marked background worker (#67), retries/failure handling (#68), and normalization pipeline (#70) as completed; updated statuses and notes accordingly.
+- 2025-10-23: Typed projections completed for all types (#54, #56, #57, #58, #59, #60).
+- 2025-10-19: Marked schema migrations as Present=Yes (#50 closed) and parser core complete (#52 closed).
 - 2025-10-07: Initial gap analysis scaffold created for M2.
