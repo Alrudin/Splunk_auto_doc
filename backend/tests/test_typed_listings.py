@@ -1,6 +1,5 @@
 """Tests for typed listing endpoints (inputs, props, transforms, indexes, outputs, serverclasses)."""
 
-
 import pytest
 
 # Ensure all models are imported first
