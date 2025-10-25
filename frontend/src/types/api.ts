@@ -40,6 +40,17 @@ export interface PaginatedResponse<T> {
   pages: number
 }
 
+export interface ParseStatusResponse {
+  run_id: number
+  status: string
+  error_message?: string | null
+  summary?: {
+    files_parsed: number
+    stanzas_created: number
+    typed_projections: Record<string, number>
+    parse_errors: number
+    duration_seconds: number
+  } | null
 export interface ParseResponse {
   run_id: number
   status: string
