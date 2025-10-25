@@ -166,7 +166,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!file) return
-    
+
     setUploading(true)
     try {
       const runId = await uploadFile(file)
@@ -272,13 +272,13 @@ describe('UploadForm', () => {
   it('calls onUploadComplete when upload succeeds', async () => {
     const mockOnComplete = vi.fn()
     render(<UploadForm onUploadComplete={mockOnComplete} allowedTypes={['.tar.gz']} />)
-    
+
     const fileInput = screen.getByLabelText(/select file/i)
     const file = new File(['content'], 'test.tar.gz', { type: 'application/gzip' })
-    
+
     fireEvent.change(fileInput, { target: { files: [file] } })
     fireEvent.click(screen.getByText(/upload/i))
-    
+
     // Wait for async upload
     await screen.findByText(/upload complete/i)
     expect(mockOnComplete).toHaveBeenCalledWith(expect.any(Number))
@@ -428,13 +428,13 @@ from app.worker.celery_app import celery_app
 @shared_task(bind=True, max_retries=3)
 def parse_run(self, run_id: int) -> dict:
     """Parse configuration files for an ingestion run.
-    
+
     Args:
         run_id: ID of the ingestion run to parse
-        
+
     Returns:
         dict: Parsing results with file and stanza counts
-        
+
     Raises:
         Retry: If parsing fails and retries remain
     """
