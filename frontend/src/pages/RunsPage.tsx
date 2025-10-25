@@ -146,9 +146,18 @@ export default function RunsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {data.items.map(run => (
-                  <tr key={run.id} className="hover:bg-gray-50">
+                  <tr
+                    key={run.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => (window.location.href = `/runs/${run.id}`)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {run.id}
+                      <Link
+                        to={`/runs/${run.id}`}
+                        className="text-primary-600 hover:text-primary-800"
+                      >
+                        {run.id}
+                      </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

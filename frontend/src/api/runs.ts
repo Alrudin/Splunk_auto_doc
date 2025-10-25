@@ -6,6 +6,7 @@ import type {
   IngestionRun,
   UploadResponse,
   PaginatedResponse,
+  ParseStatusResponse,
 } from '../types/api'
 
 export const runsApi = {
@@ -44,6 +45,13 @@ export const runsApi = {
     }
 
     return apiClient.postFormData<UploadResponse>('/v1/uploads', formData)
+  },
+
+  /**
+   * Get parse status for a specific ingestion run
+   */
+  async getParseStatus(runId: number): Promise<ParseStatusResponse> {
+    return apiClient.get<ParseStatusResponse>(`/v1/runs/${runId}/parse-status`)
   },
 }
 
