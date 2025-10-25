@@ -44,8 +44,7 @@ export default function RunDetailPage() {
   // Determine if parse button should be enabled
   const canParse = run?.status === 'stored'
   const isParsing = parseMutation.isPending || run?.status === 'parsing'
-  const isComplete =
-    run?.status === 'normalized' || run?.status === 'complete'
+  const isComplete = run?.status === 'normalized' || run?.status === 'complete'
 
   return (
     <div>

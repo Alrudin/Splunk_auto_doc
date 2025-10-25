@@ -142,9 +142,7 @@ describe('RunDetailPage', () => {
       expect(parseButton.hasAttribute('disabled')).toBe(true)
     })
 
-    expect(
-      screen.getByText(/This run has already been parsed/i)
-    ).toBeDefined()
+    expect(screen.getByText(/This run has already been parsed/i)).toBeDefined()
   })
 
   it('disables parse button for normalized runs', async () => {
@@ -165,9 +163,7 @@ describe('RunDetailPage', () => {
       expect(parseButton.hasAttribute('disabled')).toBe(true)
     })
 
-    expect(
-      screen.getByText(/This run has already been parsed/i)
-    ).toBeDefined()
+    expect(screen.getByText(/This run has already been parsed/i)).toBeDefined()
   })
 
   it('disables parse button for failed runs', async () => {
