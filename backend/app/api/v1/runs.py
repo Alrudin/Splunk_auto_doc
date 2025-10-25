@@ -18,6 +18,7 @@ from app.models.transform import Transform
 from app.schemas.index import IndexListResponse, IndexResponse
 from app.schemas.ingestion_run import (
     IngestionRunListResponse,
+    IngestionRunParseResponse,
     IngestionRunResponse,
     IngestionRunStatusResponse,
     IngestionRunStatusUpdate,
@@ -265,6 +266,144 @@ async def update_run_status(
         error_message=run.error_message,
         summary=summary,
     )
+
+
+@router.post("/runs/{run_id}/parse", response_model=IngestionRunParseResponse, status_code=status.HTTP_202_ACCEPTED)
+async def trigger_parse(
+    run_id: int,
+    db: Session = Depends(get_db),
+) -> IngestionRunParseResponse:
+    """Trigger background parsing job for an ingestion run.
+
+    Enqueues a Celery task to parse configuration files for this run.
+    The task extracts .conf files from the uploaded archive, parses them,
+    and persists stanzas and typed projections to the database.
+
+    This endpoint is idempotent - if the run has already been parsed or is
+    currently parsing, it returns the existing task information without
+    creating a duplicate job.
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        db: Database session
+
+    Returns:
+        IngestionRunParseResponse: Task ID and status information
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id or
+                      run is not in a valid state for parsing
+    """
+    logger.info(f"Triggering parse for run_id={run_id}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Query for the run
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+
+    if not run:
+        logger.warning(f"Run not found: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Check if run is already complete (idempotent handling)
+    if run.status == IngestionStatus.COMPLETE:
+        logger.info(
+            f"Run {run_id} already complete, returning existing task_id",
+            extra={"run_id": run_id, "task_id": run.task_id},
+        )
+        return IngestionRunParseResponse(
+            run_id=run.id,
+            status=run.status,
+            task_id=run.task_id or "completed",
+            message=f"Run already completed. Task ID: {run.task_id or 'N/A'}",
+        )
+
+    # Check if run is already parsing or normalized
+    if run.status in [IngestionStatus.PARSING, IngestionStatus.NORMALIZED]:
+        logger.info(
+            f"Run {run_id} already in progress (status={run.status}), returning existing task_id",
+            extra={"run_id": run_id, "task_id": run.task_id, "status": run.status},
+        )
+        return IngestionRunParseResponse(
+            run_id=run.id,
+            status=run.status,
+            task_id=run.task_id or "in-progress",
+            message=f"Parse job already in progress. Task ID: {run.task_id or 'N/A'}",
+        )
+
+    # Check if run is in stored status (ready for parsing)
+    # Also allow pending and failed status to be re-parsed
+    if run.status not in [
+        IngestionStatus.STORED,
+        IngestionStatus.PENDING,
+        IngestionStatus.FAILED,
+    ]:
+        logger.warning(
+            f"Run {run_id} in invalid status for parsing: {run.status}",
+            extra={"run_id": run_id, "status": run.status},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Run status '{run.status.value}' is not valid for parsing. "
+            f"Expected: stored, pending, or failed.",
+        )
+
+    # Import worker task
+    from app.worker.tasks import parse_run
+
+    # Enqueue parse task
+    try:
+        task = parse_run.delay(run_id)
+        task_id = task.id
+
+        logger.info(
+            f"Enqueued parse task for run {run_id}",
+            extra={"run_id": run_id, "task_id": task_id},
+        )
+
+        # Update run status to parsing and store task_id
+        run.status = IngestionStatus.PARSING
+        run.task_id = task_id
+        run.error_message = None  # Clear any previous errors
+        run.error_traceback = None
+
+        from datetime import datetime
+
+        run.started_at = datetime.utcnow()
+        run.last_heartbeat = datetime.utcnow()
+
+        db.commit()
+
+        logger.info(
+            f"Updated run {run_id} status to PARSING with task_id {task_id}",
+            extra={"run_id": run_id, "task_id": task_id},
+        )
+
+        return IngestionRunParseResponse(
+            run_id=run.id,
+            status=run.status,
+            task_id=task_id,
+            message=f"Parse job enqueued successfully. Task ID: {task_id}",
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Failed to enqueue parse task for run {run_id}: {e}",
+            exc_info=True,
+            extra={"run_id": run_id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to enqueue parse task: {str(e)}",
+        ) from e
 
 
 @router.get("/runs/{run_id}/inputs", response_model=InputListResponse)
