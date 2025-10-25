@@ -863,6 +863,86 @@ curl http://localhost:8000/v1/runs/42
 # }
 ```
 
+**List Parsed Entities (Typed Listings):**
+
+After an ingestion run has been parsed and normalized, you can retrieve the typed entities:
+
+```bash
+# List inputs for a run
+curl "http://localhost:8000/v1/runs/42/inputs"
+
+# With pagination and filtering
+curl "http://localhost:8000/v1/runs/42/inputs?page=1&per_page=20&app=search&stanza_type=monitor://"
+
+# List props (sourcetype configurations)
+curl "http://localhost:8000/v1/runs/42/props"
+
+# Filter by target sourcetype
+curl "http://localhost:8000/v1/runs/42/props?target=access_combined"
+
+# List transforms
+curl "http://localhost:8000/v1/runs/42/transforms"
+
+# Filter by transform name
+curl "http://localhost:8000/v1/runs/42/transforms?name=my_transform"
+
+# List indexes
+curl "http://localhost:8000/v1/runs/42/indexes"
+
+# Filter by index name
+curl "http://localhost:8000/v1/runs/42/indexes?name=main"
+
+# List outputs (forwarding configurations)
+curl "http://localhost:8000/v1/runs/42/outputs"
+
+# Filter by output group
+curl "http://localhost:8000/v1/runs/42/outputs?group_name=indexer_group"
+
+# List serverclasses (deployment server configurations)
+curl "http://localhost:8000/v1/runs/42/serverclasses"
+
+# With multiple filters
+curl "http://localhost:8000/v1/runs/42/serverclasses?app=deployment-apps&scope=local"
+```
+
+**Common Query Parameters for Typed Listings:**
+
+All typed listing endpoints support:
+- `page` - Page number (default: 1)
+- `per_page` - Results per page (default: 50, max: 100)
+
+Entity-specific filters:
+- **Inputs**: `app`, `scope`, `layer`, `stanza_type`, `index`
+- **Props**: `target`
+- **Transforms**: `name`
+- **Indexes**: `name`
+- **Outputs**: `group_name`
+- **Serverclasses**: `name`, `app`, `scope`, `layer`
+
+Example response format (all follow similar structure):
+```json
+{
+  "inputs": [
+    {
+      "id": 1,
+      "run_id": 42,
+      "source_path": "/opt/splunk/etc/apps/search/default/inputs.conf",
+      "stanza_type": "monitor://",
+      "index": "main",
+      "sourcetype": "access_combined",
+      "disabled": false,
+      "kv": {"interval": "60"},
+      "app": "search",
+      "scope": "default",
+      "layer": "app"
+    }
+  ],
+  "total": 15,
+  "page": 1,
+  "per_page": 50
+}
+```
+
 ## Database Schema
 
 ### Core Tables
