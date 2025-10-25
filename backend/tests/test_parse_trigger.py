@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from app.models.ingestion_run import IngestionRun, IngestionStatus, IngestionType
 
 
@@ -23,7 +21,7 @@ class TestParseTriggerEndpoint:
         run_id = run.id
 
         # Mock the Celery task
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             mock_result = MagicMock()
             mock_result.id = "test-task-id-12345"
             mock_task.delay.return_value = mock_result
@@ -163,7 +161,7 @@ class TestParseTriggerEndpoint:
         run_id = run.id
 
         # Mock the Celery task
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             mock_result = MagicMock()
             mock_result.id = "pending-task-id"
             mock_task.delay.return_value = mock_result
@@ -196,7 +194,7 @@ class TestParseTriggerEndpoint:
         run_id = run.id
 
         # Mock the Celery task
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             mock_result = MagicMock()
             mock_result.id = "retry-task-id"
             mock_task.delay.return_value = mock_result
@@ -230,7 +228,7 @@ class TestParseTriggerEndpoint:
         run_id = run.id
 
         # Mock the Celery task
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             mock_result = MagicMock()
             mock_result.id = "task-12345"
             mock_task.delay.return_value = mock_result
@@ -267,7 +265,7 @@ class TestParseTriggerEndpoint:
         run_id = run.id
 
         # Mock the Celery task to raise an error
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             mock_task.delay.side_effect = Exception("Celery connection failed")
 
             # Trigger parse
@@ -292,7 +290,7 @@ class TestParseTriggerEndpoint:
         run_id = run.id
 
         # Mock the Celery task
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             mock_result = MagicMock()
             mock_result.id = "task-id"
             mock_task.delay.return_value = mock_result
@@ -318,9 +316,9 @@ class TestParseTriggerEndpoint:
         db_session.commit()
 
         # Mock the Celery task
-        with patch("app.api.v1.runs.parse_run") as mock_task:
+        with patch("app.worker.tasks.parse_run") as mock_task:
             task_ids = []
-            for i, run in enumerate(runs):
+            for i, _run in enumerate(runs):
                 mock_result = MagicMock()
                 mock_result.id = f"task-{i}"
                 task_ids.append(mock_result.id)

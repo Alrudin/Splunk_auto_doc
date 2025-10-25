@@ -268,7 +268,11 @@ async def update_run_status(
     )
 
 
-@router.post("/runs/{run_id}/parse", response_model=IngestionRunParseResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/runs/{run_id}/parse",
+    response_model=IngestionRunParseResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def trigger_parse(
     run_id: int,
     db: Session = Depends(get_db),
