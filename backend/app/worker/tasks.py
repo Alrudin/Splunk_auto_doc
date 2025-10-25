@@ -17,9 +17,25 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.models.file import File as FileModel
+from app.models.index import Index
 from app.models.ingestion_run import IngestionRun, IngestionStatus
+from app.models.input import Input
+from app.models.output import Output
+from app.models.props import Props
+from app.models.serverclass import Serverclass
 from app.models.stanza import Stanza
+from app.models.transform import Transform
 from app.parser import ConfParser, ParserError
+from app.parser.types import ParsedStanza
+from app.projections import (
+    IndexProjector,
+    InputProjector,
+    OutputProjector,
+    Projector,
+    PropsProjector,
+    ServerclassProjector,
+    TransformProjector,
+)
 from app.storage import get_storage_backend
 from app.worker.celery_app import celery_app
 from app.worker.exceptions import PermanentError, TransientError
@@ -180,6 +196,18 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         total_files_parsed = 0
         parse_errors = []
 
+        # Accumulate stanzas for bulk insert
+        stanza_rows = []
+        # Group parsed stanzas by conf_type for typed projection
+        stanza_batches: dict[str, list[Any]] = {
+            "inputs": [],
+            "props": [],
+            "transforms": [],
+            "indexes": [],
+            "outputs": [],
+            "serverclasses": [],
+        }
+
         # Process each uploaded file
         for file_record in files:
             update_heartbeat()
@@ -231,50 +259,38 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                         # Determine conf type from filename
                         conf_type = _determine_conf_type(conf_file.name)
 
-                        # Persist stanzas (idempotent - check if already exists)
+                        # Accumulate stanzas for bulk insert
                         for stanza in stanzas:
-                            # Check if stanza already exists to maintain idempotency
-                            existing = (
-                                db.query(Stanza)
-                                .filter(
-                                    Stanza.run_id == run_id,
-                                    Stanza.file_id == file_record.id,
-                                    Stanza.name == stanza.name,
-                                    Stanza.source_path
-                                    == (
-                                        stanza.provenance.source_path
-                                        if stanza.provenance
-                                        else str(conf_file)
-                                    ),
-                                )
-                                .first()
-                            )
+                            # Build stanza row for bulk insert
+                            stanza_row = {
+                                "run_id": run_id,
+                                "file_id": file_record.id,
+                                "conf_type": conf_type,
+                                "name": stanza.name,
+                                "app": stanza.provenance.app
+                                if stanza.provenance
+                                else None,
+                                "scope": stanza.provenance.scope
+                                if stanza.provenance
+                                else None,
+                                "layer": stanza.provenance.layer
+                                if stanza.provenance
+                                else None,
+                                "order_in_file": stanza.provenance.order_in_file
+                                if stanza.provenance
+                                else None,
+                                "source_path": stanza.provenance.source_path
+                                if stanza.provenance
+                                else str(conf_file),
+                                "raw_kv": dict(stanza.keys),
+                            }
+                            stanza_rows.append(stanza_row)
 
-                            if not existing:
-                                stanza_record = Stanza(
-                                    run_id=run_id,
-                                    file_id=file_record.id,
-                                    conf_type=conf_type,
-                                    name=stanza.name,
-                                    app=stanza.provenance.app
-                                    if stanza.provenance
-                                    else None,
-                                    scope=stanza.provenance.scope
-                                    if stanza.provenance
-                                    else None,
-                                    layer=stanza.provenance.layer
-                                    if stanza.provenance
-                                    else None,
-                                    order_in_file=stanza.provenance.order_in_file
-                                    if stanza.provenance
-                                    else None,
-                                    source_path=stanza.provenance.source_path
-                                    if stanza.provenance
-                                    else str(conf_file),
-                                    raw_kv=dict(stanza.keys),
-                                )
-                                db.add(stanza_record)
-                                total_stanzas += 1
+                            # Group parsed stanzas for typed projection
+                            if conf_type in stanza_batches:
+                                stanza_batches[conf_type].append(stanza)
+
+                            total_stanzas += 1
 
                         logger.debug(
                             f"Parsed {len(stanzas)} stanzas from {conf_file.name}",
@@ -298,8 +314,50 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
                         parse_errors.append(error_detail)
                         # Continue parsing other files
 
-        # Commit all stanzas
-        db.commit()
+        # Bulk insert stanzas using SQLAlchemy Core
+        if stanza_rows:
+            try:
+                from sqlalchemy import insert
+
+                # Check for existing stanzas to maintain idempotency
+                # For simplicity in bulk insert, we'll skip if ANY stanzas exist for this run
+                existing_count = (
+                    db.query(Stanza).filter(Stanza.run_id == run_id).count()
+                )
+
+                if existing_count == 0:
+                    # Bulk insert all stanzas at once
+                    stmt = insert(Stanza).values(stanza_rows)
+                    db.execute(stmt)
+                    db.commit()
+                    logger.info(
+                        f"Bulk inserted {len(stanza_rows)} stanzas",
+                        extra={"run_id": run_id},
+                    )
+                else:
+                    logger.info(
+                        f"Skipping stanza bulk insert - {existing_count} stanzas already exist for run {run_id}",
+                        extra={"run_id": run_id},
+                    )
+            except Exception as e:
+                logger.error(f"Failed to bulk insert stanzas: {e}", exc_info=True)
+                raise
+
+        # Create typed projections and bulk insert
+        projection_counts = {}
+        try:
+            projection_counts = _bulk_insert_typed_projections(
+                db, stanza_batches, run_id
+            )
+            db.commit()
+            logger.info(
+                f"Created typed projections: {projection_counts}",
+                extra={"run_id": run_id},
+            )
+        except Exception as e:
+            logger.error(f"Failed to create typed projections: {e}", exc_info=True)
+            # Typed projection errors are non-fatal - stanzas are already persisted
+            parse_errors.append(f"Typed projection error: {e}")
 
         # Update run status to complete
         run.status = IngestionStatus.COMPLETE
@@ -310,6 +368,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
         run.metrics = {
             "files_parsed": total_files_parsed,
             "stanzas_created": total_stanzas,
+            "typed_projections": projection_counts,
             "duration_seconds": duration,
             "parse_errors": len(parse_errors),
             "retry_count": self.request.retries,
@@ -322,6 +381,7 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
             "status": "completed",
             "files_parsed": total_files_parsed,
             "stanzas_created": total_stanzas,
+            "typed_projections": projection_counts,
             "duration_seconds": duration,
             "parse_errors": parse_errors if parse_errors else None,
         }
@@ -519,6 +579,13 @@ def parse_run(self: DatabaseTask, run_id: int) -> dict[str, Any]:
 def _extract_archive(archive_path: Path, extract_to: Path) -> list[Path]:
     """Extract tar.gz or zip archive and return list of extracted files.
 
+    Security features:
+    - Guards against zip bombs (max 100MB uncompressed per file, 1GB total)
+    - Prevents path traversal attacks
+    - Blocks symlinks
+    - Enforces max file count (10,000 files)
+    - Enforces max directory depth (20 levels)
+
     Args:
         archive_path: Path to archive file
         extract_to: Directory to extract to
@@ -529,26 +596,168 @@ def _extract_archive(archive_path: Path, extract_to: Path) -> list[Path]:
     Raises:
         ValueError: If archive format is unsupported or extraction fails
     """
+    MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB per file
+    MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1 GB total
+    MAX_FILE_COUNT = 10000  # Maximum files in archive
+    MAX_DEPTH = 20  # Maximum directory depth
+
     extracted_files: list[Path] = []
+    total_size = 0
+    file_count = 0
 
     try:
         if archive_path.suffix == ".zip":
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
+                # Validate zip contents before extraction
+                for info in zip_ref.infolist():
+                    # Check file count
+                    file_count += 1
+                    if file_count > MAX_FILE_COUNT:
+                        raise ValueError(
+                            f"Archive contains too many files (max {MAX_FILE_COUNT})"
+                        )
+
+                    # Check for path traversal
+                    member_path = Path(extract_to) / info.filename
+                    if not str(member_path.resolve()).startswith(
+                        str(extract_to.resolve())
+                    ):
+                        raise ValueError(
+                            f"Path traversal detected in archive: {info.filename}"
+                        )
+
+                    # Check directory depth
+                    depth = len(Path(info.filename).parts)
+                    if depth > MAX_DEPTH:
+                        raise ValueError(
+                            f"Archive path too deep (max {MAX_DEPTH} levels): {info.filename}"
+                        )
+
+                    # Check file size (zip bomb protection)
+                    if info.file_size > MAX_FILE_SIZE:
+                        raise ValueError(
+                            f"File too large in archive (max {MAX_FILE_SIZE / 1024 / 1024}MB): {info.filename}"
+                        )
+
+                    total_size += info.file_size
+                    if total_size > MAX_TOTAL_SIZE:
+                        raise ValueError(
+                            f"Archive total size too large (max {MAX_TOTAL_SIZE / 1024 / 1024}MB)"
+                        )
+
+                # Extract safely
                 zip_ref.extractall(extract_to)
+
         elif archive_path.suffix == ".gz" or archive_path.name.endswith(".tar.gz"):
             with tarfile.open(archive_path, "r:gz") as tar_ref:
-                tar_ref.extractall(extract_to)
+                # Validate tar contents before extraction
+                for member in tar_ref.getmembers():
+                    # Check file count
+                    file_count += 1
+                    if file_count > MAX_FILE_COUNT:
+                        raise ValueError(
+                            f"Archive contains too many files (max {MAX_FILE_COUNT})"
+                        )
+
+                    # Block symlinks and hardlinks
+                    if member.issym() or member.islnk():
+                        raise ValueError(
+                            f"Archive contains symlinks/hardlinks (security risk): {member.name}"
+                        )
+
+                    # Check for path traversal
+                    member_path = Path(extract_to) / member.name
+                    if not str(member_path.resolve()).startswith(
+                        str(extract_to.resolve())
+                    ):
+                        raise ValueError(
+                            f"Path traversal detected in archive: {member.name}"
+                        )
+
+                    # Check directory depth
+                    depth = len(Path(member.name).parts)
+                    if depth > MAX_DEPTH:
+                        raise ValueError(
+                            f"Archive path too deep (max {MAX_DEPTH} levels): {member.name}"
+                        )
+
+                    # Check file size
+                    if member.size > MAX_FILE_SIZE:
+                        raise ValueError(
+                            f"File too large in archive (max {MAX_FILE_SIZE / 1024 / 1024}MB): {member.name}"
+                        )
+
+                    total_size += member.size
+                    if total_size > MAX_TOTAL_SIZE:
+                        raise ValueError(
+                            f"Archive total size too large (max {MAX_TOTAL_SIZE / 1024 / 1024}MB)"
+                        )
+
+                # Extract safely
+                tar_ref.extractall(extract_to, filter="data")
+
         elif archive_path.suffix == ".tar":
             with tarfile.open(archive_path, "r") as tar_ref:
-                tar_ref.extractall(extract_to)
+                # Validate tar contents before extraction
+                for member in tar_ref.getmembers():
+                    # Check file count
+                    file_count += 1
+                    if file_count > MAX_FILE_COUNT:
+                        raise ValueError(
+                            f"Archive contains too many files (max {MAX_FILE_COUNT})"
+                        )
+
+                    # Block symlinks and hardlinks
+                    if member.issym() or member.islnk():
+                        raise ValueError(
+                            f"Archive contains symlinks/hardlinks (security risk): {member.name}"
+                        )
+
+                    # Check for path traversal
+                    member_path = Path(extract_to) / member.name
+                    if not str(member_path.resolve()).startswith(
+                        str(extract_to.resolve())
+                    ):
+                        raise ValueError(
+                            f"Path traversal detected in archive: {member.name}"
+                        )
+
+                    # Check directory depth
+                    depth = len(Path(member.name).parts)
+                    if depth > MAX_DEPTH:
+                        raise ValueError(
+                            f"Archive path too deep (max {MAX_DEPTH} levels): {member.name}"
+                        )
+
+                    # Check file size
+                    if member.size > MAX_FILE_SIZE:
+                        raise ValueError(
+                            f"File too large in archive (max {MAX_FILE_SIZE / 1024 / 1024}MB): {member.name}"
+                        )
+
+                    total_size += member.size
+                    if total_size > MAX_TOTAL_SIZE:
+                        raise ValueError(
+                            f"Archive total size too large (max {MAX_TOTAL_SIZE / 1024 / 1024}MB)"
+                        )
+
+                # Extract safely
+                tar_ref.extractall(extract_to, filter="data")
         else:
             raise ValueError(f"Unsupported archive format: {archive_path.suffix}")
 
         # Collect all extracted files recursively
         for file_path in extract_to.rglob("*"):
             if file_path.is_file():
+                # Final check: ensure no symlinks were created
+                if file_path.is_symlink():
+                    logger.warning(f"Skipping symlink: {file_path}")
+                    continue
                 extracted_files.append(file_path)
 
+        logger.info(
+            f"Extracted {len(extracted_files)} files from archive (total size: {total_size / 1024 / 1024:.2f}MB)"
+        )
         return extracted_files
 
     except (tarfile.TarError, zipfile.BadZipFile) as e:
@@ -582,3 +791,108 @@ def _determine_conf_type(filename: str) -> str:
     }
 
     return known_types.get(base_name.lower(), "other")
+
+
+def _bulk_insert_typed_projections(
+    db: Session,
+    stanza_batches: dict[str, list[ParsedStanza]],
+    run_id: int,
+) -> dict[str, int]:
+    """Bulk insert typed projections using SQLAlchemy Core for performance.
+
+    Args:
+        db: Database session
+        stanza_batches: Dictionary mapping conf_type to list of parsed stanzas
+        run_id: Ingestion run ID
+
+    Returns:
+        Dictionary with counts of records created for each type
+
+    Raises:
+        Exception: If bulk insert fails
+    """
+    from sqlalchemy import insert
+
+    counts = {
+        "inputs": 0,
+        "props": 0,
+        "transforms": 0,
+        "indexes": 0,
+        "outputs": 0,
+        "serverclasses": 0,
+    }
+
+    # Initialize projectors
+    projectors: dict[str, Projector] = {
+        "inputs": InputProjector(),
+        "props": PropsProjector(),
+        "transforms": TransformProjector(),
+        "indexes": IndexProjector(),
+        "outputs": OutputProjector(),
+        "serverclasses": ServerclassProjector(),
+    }
+
+    # Process each conf type
+    for conf_type, stanzas in stanza_batches.items():
+        if conf_type not in projectors or not stanzas:
+            continue
+
+        projector = projectors[conf_type]
+        projected_rows = []
+
+        # Project each stanza to typed row
+        for stanza in stanzas:
+            try:
+                projection = projector.project(stanza, run_id)
+                # Some projectors (like serverclass) may return None for certain stanzas
+                if projection is not None:
+                    projected_rows.append(projection)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to project {conf_type} stanza '{stanza.name}': {e}",
+                    extra={"run_id": run_id, "conf_type": conf_type},
+                )
+                # Continue with other stanzas
+
+        # Bulk insert using SQLAlchemy Core
+        if projected_rows:
+            try:
+                if conf_type == "inputs":
+                    stmt = insert(Input).values(projected_rows)
+                    db.execute(stmt)
+                    counts["inputs"] = len(projected_rows)
+                elif conf_type == "props":
+                    stmt = insert(Props).values(projected_rows)
+                    db.execute(stmt)
+                    counts["props"] = len(projected_rows)
+                elif conf_type == "transforms":
+                    stmt = insert(Transform).values(projected_rows)
+                    db.execute(stmt)
+                    counts["transforms"] = len(projected_rows)
+                elif conf_type == "indexes":
+                    stmt = insert(Index).values(projected_rows)
+                    db.execute(stmt)
+                    counts["indexes"] = len(projected_rows)
+                elif conf_type == "outputs":
+                    stmt = insert(Output).values(projected_rows)
+                    db.execute(stmt)
+                    counts["outputs"] = len(projected_rows)
+                elif conf_type == "serverclasses":
+                    stmt = insert(Serverclass).values(projected_rows)
+                    db.execute(stmt)
+                    counts["serverclasses"] = len(projected_rows)
+
+                logger.info(
+                    f"Bulk inserted {len(projected_rows)} {conf_type} records",
+                    extra={"run_id": run_id, "conf_type": conf_type},
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to bulk insert {conf_type} projections: {e}",
+                    extra={"run_id": run_id, "conf_type": conf_type},
+                    exc_info=True,
+                )
+                raise
+
+    return counts

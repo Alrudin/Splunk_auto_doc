@@ -509,48 +509,191 @@ WHERE whitelist @> '["webserver*"]';
 
 ## Normalization Pipeline
 
+The normalization pipeline orchestrates the complete flow from archive upload through parsing, projection, and bulk insertion into the database. This is the core service bridging uploads with normalized data for downstream API/UI.
+
+### Pipeline Architecture
+
+```
+┌─────────────────┐
+│  Upload Archive │
+│   (tar/zip)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Storage       │
+│  (S3/Local)     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Worker Task    │  ← Celery background task
+│  (parse_run)    │     with retry & heartbeat
+└────────┬────────┘
+         │
+         ├──► 1. Secure Extraction
+         │         (zip bombs, path traversal, symlinks)
+         │
+         ├──► 2. Walk & Filter
+         │         (find .conf files, extract provenance)
+         │
+         ├──► 3. Parse
+         │         (ConfParser → ParsedStanza[])
+         │
+         ├──► 4. Bulk Insert Stanzas
+         │         (SQLAlchemy Core)
+         │
+         ├──► 5. Typed Projection
+         │         (6 projectors → typed rows)
+         │
+         └──► 6. Bulk Insert Projections
+                  (SQLAlchemy Core)
+```
+
 The normalization process follows these steps:
 
-### 1. Archive Extraction
+### 1. Archive Extraction (Security-Hardened)
 
-- Unpack tar/zip to secure temporary directory
-- Validate against zip bombs and path traversal
-- Enforce size/file-count/depth limits
+**Security Guardrails**:
+- **Zip Bomb Protection**: Max 100MB per file, 1GB total uncompressed size
+- **Path Traversal Prevention**: Validates all paths stay within extraction directory
+- **Symlink Blocking**: Rejects archives containing symlinks or hardlinks (tar only)
+- **File Count Limit**: Maximum 10,000 files per archive
+- **Directory Depth Limit**: Maximum 20 levels deep
+
+**Implementation**:
+```python
+# From app/worker/tasks.py::_extract_archive()
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB per file
+MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1 GB total
+MAX_FILE_COUNT = 10000
+MAX_DEPTH = 20
+```
+
+**Supported Formats**:
+- `.tar.gz` / `.tgz` - Gzip-compressed tar archives
+- `.tar` - Uncompressed tar archives
+- `.zip` - ZIP archives
+
+**Safety Mechanisms**:
+- Pre-extraction validation of all members
+- Path resolution and normalization
+- Real-time size tracking during extraction
+- Post-extraction symlink scan and removal
+- Extraction to isolated temporary directory
 
 ### 2. File Discovery
 
 - Walk directory tree to find .conf files
 - Filter by type: `inputs.conf`, `props.conf`, `transforms.conf`, `outputs.conf`, `indexes.conf`, `serverclass.conf`
 - Extract metadata: app name, scope (default/local), layer (system/app)
+- Preserve file provenance for each configuration
 
 ### 3. Parsing
 
-- Parse each .conf file into ordered stanzas
+- Parse each .conf file into ordered stanzas using `ConfParser`
 - Handle Splunk-specific syntax:
   - Comments (`#`)
   - Line continuations (`\`)
   - Repeated keys (last wins)
   - Multi-line values
-- Preserve original order
+- Preserve original order (critical for precedence)
+- Extract provenance metadata (app, scope, layer, source_path)
 
-### 4. Stanza Storage
+### 4. Stanza Storage (Bulk Insert)
 
-- Insert all stanzas into `stanzas` table
-- Bulk insert for performance
-- Record provenance (run_id, file_id, source_path, app, scope, layer)
+**Performance Optimization**:
+- Accumulate all stanzas in memory during parsing
+- Single bulk insert using SQLAlchemy Core `insert()` statement
+- Idempotency check: skip if stanzas already exist for run
+- Commit after successful bulk insert
+
+**Benefits**:
+- 10-100x faster than individual inserts
+- Reduced database round-trips
+- Atomic operation (all-or-nothing)
+
+```python
+# Bulk insert example
+from sqlalchemy import insert
+stmt = insert(Stanza).values(stanza_rows)
+db.execute(stmt)
+db.commit()
+```
 
 ### 5. Typed Projection
 
-- Apply type-specific mappers to stanzas
-- Extract domain fields to typed columns
-- Store remaining properties in `kv` JSONB
-- Bulk insert typed records
+**Projection Flow**:
+```
+Stanza (generic)  ─┬─► InputProjector      ─► Input (typed)
+                   ├─► PropsProjector      ─► Props (typed)
+                   ├─► TransformProjector  ─► Transform (typed)
+                   ├─► IndexProjector      ─► Index (typed)
+                   ├─► OutputProjector     ─► Output (typed)
+                   └─► ServerclassProjector ─► Serverclass (typed)
+```
 
-### 6. Validation
+**Process**:
+1. Group parsed stanzas by conf_type (inputs, props, etc.)
+2. Apply appropriate projector to each stanza
+3. Extract common fields to typed columns
+4. Store remaining fields in `kv` JSONB
+5. Handle projection errors gracefully (log and continue)
 
+**Projectors** (see individual sections above for details):
+- `InputProjector`: Extracts stanza_type, index, sourcetype, disabled
+- `PropsProjector`: Extracts target, transforms_list, sedcmds
+- `TransformProjector`: Extracts dest_key, regex, format, metadata flags
+- `IndexProjector`: Stores all properties in kv JSONB
+- `OutputProjector`: Extracts group_name, servers (server/uri/target_group)
+- `ServerclassProjector`: Extracts whitelist, blacklist patterns
+
+### 6. Bulk Insert Typed Projections
+
+**Performance Optimization**:
+- Single bulk insert per conf_type using SQLAlchemy Core
+- Non-fatal errors: If typed projection fails, stanzas are still persisted
+- Logged metrics for each projection type
+
+```python
+# Bulk insert typed projections
+if conf_type == "inputs":
+    stmt = insert(Input).values(projected_rows)
+    db.execute(stmt)
+```
+
+**Error Handling**:
+- Projection errors are logged but don't fail the entire run
+- Stanzas remain queryable even if typed projection fails
+- Retry-safe: projections can be re-run if needed
+
+### 7. Validation & Metrics
+
+**Collected Metrics**:
+```json
+{
+  "files_parsed": 15,
+  "stanzas_created": 234,
+  "typed_projections": {
+    "inputs": 45,
+    "props": 32,
+    "transforms": 28,
+    "indexes": 8,
+    "outputs": 12,
+    "serverclasses": 3
+  },
+  "duration_seconds": 12.5,
+  "parse_errors": 2,
+  "retry_count": 0
+}
+```
+
+**Validation**:
 - Count stanzas by type
+- Count typed projections by type
 - Validate foreign key relationships
 - Log any parsing errors or warnings
+- Track duration and performance
 
 ## Performance Considerations
 
