@@ -107,7 +107,11 @@ class TestRunsEndpointUnit:
 
     def test_runs_summary_structure(self, client, db_session):
         """Test that run summary has expected structure."""
-        from app.models.ingestion_run import IngestionRun, IngestionStatus, IngestionType
+        from app.models.ingestion_run import (
+            IngestionRun,
+            IngestionStatus,
+            IngestionType,
+        )
 
         # Create a test run
         run = IngestionRun(
