@@ -221,7 +221,9 @@ No new dependencies added. Uses existing:
    
    **SQLite compatibility:**
    - Uses TEXT column with JSON serialization for JSONB
-   - JSON operators not available in queries (use JSON functions instead)
+   - JSON operators not available; use JSON functions instead:
+     - `json_extract(column, '$.key')` instead of `column->>'key'`
+     - `json_type(column, '$.key')` to check key existence instead of `column ? 'key'`
    - No native JSON validation
    
    **Impact:** Tests pass on SQLite, but production queries may need PostgreSQL-specific optimizations.
@@ -236,7 +238,9 @@ No new dependencies added. Uses existing:
 
 ## Testing
 
-To run the normalization pipeline tests (from project root):
+**Run from project root:** `/path/to/Splunk_auto_doc/`
+
+To run the normalization pipeline tests:
 
 ```bash
 # Install dependencies
@@ -254,8 +258,6 @@ pytest backend/tests/test_normalization_pipeline.py -v -m slow
 # Run with coverage
 pytest backend/tests/test_normalization_pipeline.py --cov=app.worker.tasks --cov-report=term
 ```
-
-**Note:** Run commands from `/home/runner/work/Splunk_auto_doc/Splunk_auto_doc` (project root) or adjust paths accordingly.
 
 ## Conclusion
 
