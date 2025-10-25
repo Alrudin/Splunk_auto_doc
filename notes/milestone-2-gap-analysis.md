@@ -107,6 +107,17 @@ Note: Completed and removed from remaining list — Schema migrations (#50), Par
 
 ## Update Log
 
+- 2025-10-25: **VERIFICATION COMPLETE** - All API endpoints for typed listings fully implemented and tested:
+  - ✅ GET /runs/{id}/inputs - with pagination (page, per_page) and filtering (app, scope, layer, stanza_type, index)
+  - ✅ GET /runs/{id}/props - with pagination and filtering (target)
+  - ✅ GET /runs/{id}/transforms - with pagination and filtering (name)
+  - ✅ GET /runs/{id}/indexes - with pagination and filtering (name)
+  - ✅ GET /runs/{id}/outputs - with pagination and filtering (group_name)
+  - ✅ GET /runs/{id}/serverclasses - with pagination and filtering (name, app, scope, layer)
+  - ✅ All endpoints return entity data with full provenance fields (run_id, source_path, app, scope, layer where applicable)
+  - ✅ Comprehensive test coverage in `backend/tests/test_typed_listings.py` (22 test functions covering all endpoints)
+  - ✅ Full API documentation in README.md (lines 888-950+) with query parameter examples
+  - All acceptance criteria from issue met and verified
 - 2025-10-25: Implemented GET /runs/{id}/summary endpoint with entity counts for all parsed types. Added tests and documentation.
 - 2025-10-25: Implemented API endpoints for typed listings (inputs, props, transforms, indexes, outputs, serverclasses) with pagination and filtering. Updated README with endpoint documentation. Marked API endpoints as completed in gap analysis.
 - 2025-10-25: Marked background worker (#67), retries/failure handling (#68), and normalization pipeline (#70) as completed; updated statuses and notes accordingly.
