@@ -84,3 +84,12 @@ class IngestionRunSummaryResponse(BaseModel):
     indexes: int = Field(description="Count of index configurations")
     outputs: int = Field(description="Count of output configurations")
     serverclasses: int = Field(description="Count of serverclass configurations")
+
+
+class IngestionRunParseResponse(BaseModel):
+    """Schema for parse trigger API response."""
+
+    run_id: int = Field(description="Unique identifier for the ingestion run")
+    status: IngestionStatus = Field(description="Current status of the ingestion run")
+    task_id: str = Field(description="Celery task ID for background parsing job")
+    message: str = Field(description="Human-readable status message")

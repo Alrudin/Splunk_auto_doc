@@ -863,6 +863,50 @@ curl http://localhost:8000/v1/runs/42
 # }
 ```
 
+**Trigger Parse Job:**
+```bash
+# Trigger background parsing for an ingestion run
+curl -X POST http://localhost:8000/v1/runs/42/parse
+
+# Example response (202 Accepted):
+# {
+#   "run_id": 42,
+#   "status": "parsing",
+#   "task_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+#   "message": "Parse job enqueued successfully. Task ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+# }
+```
+
+**Parse Trigger Behavior:**
+
+The parse endpoint is **idempotent** and handles various run states intelligently:
+
+- **Stored/Pending/Failed**: Enqueues a new parse task, updates status to `parsing`
+- **Already Parsing/Normalized**: Returns existing task info without creating duplicate job
+- **Already Complete**: Returns completion status with original task ID
+- **Invalid Status**: Returns 400 error
+
+**Parse Task Lifecycle:**
+
+1. `POST /runs/{id}/parse` → Status changes to `parsing`, task is enqueued
+2. Worker processes archive, extracts .conf files
+3. Stanzas are parsed with full provenance (app, scope, layer, file)
+4. Typed projections created (inputs, props, transforms, etc.)
+5. Status transitions: `parsing` → `normalized` → `complete`
+6. If errors occur: Status becomes `failed` with error details
+
+**Monitor Parse Progress:**
+```bash
+# Check run status
+curl http://localhost:8000/v1/runs/42/status
+
+# Get task details (if you have task_id)
+curl http://localhost:8000/v1/worker/tasks/{task_id}
+
+# Get worker health
+curl http://localhost:8000/v1/worker/health
+```
+
 **Get Run Summary:**
 ```bash
 # Get entity count summary for a specific run
