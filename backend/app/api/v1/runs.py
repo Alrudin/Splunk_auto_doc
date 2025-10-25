@@ -410,6 +410,79 @@ async def trigger_parse(
         ) from e
 
 
+@router.get("/runs/{run_id}/parse-status", response_model=IngestionRunStatusResponse)
+async def get_parse_status(
+    run_id: int,
+    db: Session = Depends(get_db),
+) -> IngestionRunStatusResponse:
+    """Get parse status for a specific ingestion run.
+
+    This endpoint is optimized for frontend polling to track parse progress.
+    Returns current parse status, error details if any, and summary metrics.
+
+    Parse status lifecycle: stored → parsing → normalized → complete
+                                           ↓
+                                        failed
+
+    Args:
+        run_id: Unique identifier of the ingestion run
+        db: Database session
+
+    Returns:
+        IngestionRunStatusResponse: Parse status, error message, and summary
+
+    Raises:
+        HTTPException: 404 if run not found, 400 if invalid run_id
+    """
+    logger.info(f"Fetching parse status for run_id={run_id}")
+
+    # Validate run_id is positive
+    if run_id < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid run_id: {run_id}. Must be a positive integer.",
+        )
+
+    # Query for the run
+    run = db.query(IngestionRun).filter(IngestionRun.id == run_id).first()
+
+    if not run:
+        logger.warning(f"Run not found for parse status: run_id={run_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Run with id {run_id} not found",
+        )
+
+    # Extract summary from metrics if available
+    summary = None
+    if run.metrics:
+        summary = {
+            "files_parsed": run.metrics.get("files_parsed", 0),
+            "stanzas_created": run.metrics.get("stanzas_created", 0),
+            "typed_projections": run.metrics.get("typed_projections", {}),
+            "parse_errors": run.metrics.get("parse_errors", 0),
+            "duration_seconds": run.metrics.get("duration_seconds", 0),
+        }
+
+    # Log status transitions for monitoring
+    logger.info(
+        f"Parse status for run {run_id}: {run.status}",
+        extra={
+            "run_id": run_id,
+            "status": run.status.value,
+            "has_error": run.error_message is not None,
+            "files_parsed": summary.get("files_parsed", 0) if summary else 0,
+        },
+    )
+
+    return IngestionRunStatusResponse(
+        run_id=run.id,
+        status=run.status,
+        error_message=run.error_message,
+        summary=summary,
+    )
+
+
 @router.get("/runs/{run_id}/inputs", response_model=InputListResponse)
 async def list_run_inputs(
     run_id: int,

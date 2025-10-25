@@ -897,7 +897,44 @@ The parse endpoint is **idempotent** and handles various run states intelligentl
 
 **Monitor Parse Progress:**
 ```bash
-# Check run status
+# Check parse status (optimized for frontend polling)
+curl http://localhost:8000/v1/runs/42/parse-status
+
+# Example response:
+# {
+#   "run_id": 42,
+#   "status": "parsing",
+#   "error_message": null,
+#   "summary": null
+# }
+
+# When parsing is complete:
+# {
+#   "run_id": 42,
+#   "status": "complete",
+#   "error_message": null,
+#   "summary": {
+#     "files_parsed": 10,
+#     "stanzas_created": 156,
+#     "typed_projections": {
+#       "inputs": 23,
+#       "props": 45,
+#       "transforms": 12
+#     },
+#     "parse_errors": 0,
+#     "duration_seconds": 12.5
+#   }
+# }
+
+# If parsing failed:
+# {
+#   "run_id": 42,
+#   "status": "failed",
+#   "error_message": "Parse error: Invalid configuration format in inputs.conf",
+#   "summary": null
+# }
+
+# Alternative: Check general run status
 curl http://localhost:8000/v1/runs/42/status
 
 # Get task details (if you have task_id)
@@ -906,6 +943,19 @@ curl http://localhost:8000/v1/worker/tasks/{task_id}
 # Get worker health
 curl http://localhost:8000/v1/worker/health
 ```
+
+**Parse Status States:**
+
+The `/runs/{id}/parse-status` endpoint returns the current parsing state:
+- `pending` - Run created, file upload in progress
+- `stored` - File uploaded successfully, ready for parsing
+- `parsing` - Parse job actively running
+- `normalized` - Stanzas parsed and typed projections created
+- `complete` - Fully processed and ready for querying
+- `failed` - Parse job failed (check `error_message` for details)
+
+This endpoint is **optimized for frontend polling** to track parse progress in real-time.
+Poll every 2-5 seconds while status is `parsing` to monitor progress.
 
 **Get Run Summary:**
 ```bash
