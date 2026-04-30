@@ -1,0 +1,39 @@
+<form version="1.1">
+  <label>Splunk Data Lineage Overview</label>
+  <description>Force-directed graph of data flowing from Universal Forwarders through Heavy Forwarders to Indexers.</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="sourcetype_tok" searchWhenChanged="true">
+      <label>Sourcetype</label>
+      <choice value="*">All</choice>
+      <default>*</default>
+      <initialValue>*</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Topology Map</title>
+      <viz type="splunk_data_lineage.data_lineage">
+        <search>
+          <query>index=summary_lineage search_name="Generate Data Lineage Topology"
+| stats sum(events_per_sec) as events_per_sec max(loss_ratio) as loss_ratio by sourceNode, targetNode
+| rename sourceNode as source, targetNode as target
+| table source, target, events_per_sec, loss_ratio</query>
+          <earliest>-60m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">all</option>
+      </viz>
+    </panel>
+    <panel depends="$drilldown_source$">
+      <title>Inspector: $drilldown_source$ -&gt; $drilldown_target$</title>
+      <table>
+        <search>
+          <query>| makeresults | eval Source="$drilldown_source$", Target="$drilldown_target$", EPS="$drilldown_eps$", "Loss Ratio"="$drilldown_loss$" | table Source, Target, EPS, "Loss Ratio"</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

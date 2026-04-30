@@ -1,0 +1,16 @@
+{
+  "name": "splunk_data_lineage",
+  "version": "1.0.0",
+  "description": "Splunk Custom Visualization for Data Lineage",
+  "main": "src/visualization.js",
+  "scripts": {
+    "build": "webpack"
+  },
+  "dependencies": {
+    "d3": "^7.8.5"
+  },
+  "devDependencies": {
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
+  }
+}

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  splunk:
+    image: splunk/splunk:latest
+    container_name: splunk_data_lineage_dev
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=changeme
+      - SPLUNK_ROLE=splunk_standalone
+    ports:
+      - "8000:8000"
+      - "8089:8089"
+    volumes:
+      - ./splunk_data_lineage:/opt/splunk/etc/apps/splunk_data_lineage
