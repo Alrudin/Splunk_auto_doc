@@ -51,7 +51,8 @@ function(
                     source: sourceId,
                     target: targetId,
                     eps: eps,
-                    lossRatio: lossRatio
+                    lossRatio: lossRatio,
+                    label: row[4] || ''
                 });
             });
 
@@ -95,6 +96,7 @@ function(
                 .force('link', d3.forceLink(data.links).id(d => d.id).distance(150))
                 .force('charge', d3.forceManyBody().strength(-300))
                 .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collide', d3.forceCollide().radius(25).iterations(2))
                 .force('x', d3.forceX().strength(0.1))
                 .force('y', d3.forceY().strength(0.1));
 
@@ -121,13 +123,22 @@ function(
                 .attr('marker-end', 'url(#arrow)')
                 .on('click', (event, d) => this._drilldown(d, 'link'));
 
+            const edgeLabel = this.svg.append('g')
+                .selectAll('text')
+                .data(data.links)
+                .enter().append('text')
+                .attr('font-size', '10px')
+                .attr('fill', '#ccc')
+                .attr('text-anchor', 'middle')
+                .text(d => d.label);
+
             const node = this.svg.append('g')
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 1.5)
                 .selectAll('circle')
                 .data(data.nodes)
                 .enter().append('circle')
-                .attr('r', 10)
+                .attr('r', 20)
                 .attr('fill', d => d.type === 'UF' ? '#1e90ff' : '#32cd32')
                 .call(d3.drag()
                     .on('start', dragstarted)
@@ -139,7 +150,7 @@ function(
                 .selectAll('text')
                 .data(data.nodes)
                 .enter().append('text')
-                .attr('dx', 12)
+                .attr('dx', 25)
                 .attr('dy', '.35em')
                 .style('font-size', '12px')
                 .style('fill', '#fff')
@@ -156,6 +167,10 @@ function(
                     .attr('y1', d => d.source.y)
                     .attr('x2', d => d.target.x)
                     .attr('y2', d => d.target.y);
+                    
+                edgeLabel
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2 - 5);
 
                 node
                     .attr('cx', d => d.x)

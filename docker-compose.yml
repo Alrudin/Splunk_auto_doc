@@ -1,16 +1,171 @@
 version: '3.8'
 
+networks:
+  splunknet:
+    driver: bridge
+
+volumes:
+  uf1_logs:
+  uf2_logs:
+  uf3_logs:
+  uf4_logs:
+
 services:
-  splunk:
+  splunk_sh_idx:
     image: splunk/splunk:latest
-    container_name: splunk_data_lineage_dev
+    container_name: splunk_sh_idx
+    hostname: splunk-sh-idx
     environment:
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
-      - SPLUNK_PASSWORD=changeme
+      - SPLUNK_PASSWORD=SplunkDev123!
       - SPLUNK_ROLE=splunk_standalone
+      - SPLUNK_ENABLE_LISTEN=9997
     ports:
       - "8000:8000"
       - "8089:8089"
     volumes:
       - ./splunk_data_lineage:/opt/splunk/etc/apps/splunk_data_lineage
+      - ./splunk_config/sh_idx_app:/opt/splunk/etc/apps/sh_idx_app
+    networks:
+      - splunknet
+
+  splunk_hf1:
+    image: splunk/splunk:latest
+    container_name: splunk_hf1
+    hostname: splunk-hf1
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=SplunkDev123!
+      - SPLUNK_ROLE=splunk_heavy_forwarder
+      - SPLUNK_ENABLE_LISTEN=9997
+      - SPLUNK_FORWARD_SERVER=splunk_sh_idx:9997
+    volumes:
+      - ./splunk_config/hf_app:/opt/splunk/etc/apps/hf_app
+    networks:
+      - splunknet
+    depends_on:
+      - splunk_sh_idx
+
+  splunk_hf2:
+    image: splunk/splunk:latest
+    container_name: splunk_hf2
+    hostname: splunk-hf2
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=SplunkDev123!
+      - SPLUNK_ROLE=splunk_heavy_forwarder
+      - SPLUNK_ENABLE_LISTEN=9997
+      - SPLUNK_FORWARD_SERVER=splunk_sh_idx:9997
+    volumes:
+      - ./splunk_config/hf_app:/opt/splunk/etc/apps/hf_app
+    networks:
+      - splunknet
+    depends_on:
+      - splunk_sh_idx
+
+  splunk_uf1:
+    image: splunk/universalforwarder:latest
+    platform: linux/amd64
+    container_name: splunk_uf1
+    hostname: splunk-uf1
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=SplunkDev123!
+      - SPLUNK_ROLE=splunk_universal_forwarder
+      - SPLUNK_FORWARD_SERVER=splunk_hf1:9997
+    volumes:
+      - ./splunk_config/uf1_app:/opt/splunkforwarder/etc/apps/uf1_app
+      - uf1_logs:/logs
+    networks:
+      - splunknet
+    depends_on:
+      - splunk_hf1
+
+  splunk_uf2:
+    image: splunk/universalforwarder:latest
+    platform: linux/amd64
+    container_name: splunk_uf2
+    hostname: splunk-uf2
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=SplunkDev123!
+      - SPLUNK_ROLE=splunk_universal_forwarder
+      - SPLUNK_FORWARD_SERVER=splunk_hf1:9997
+    volumes:
+      - ./splunk_config/uf2_app:/opt/splunkforwarder/etc/apps/uf2_app
+      - uf2_logs:/logs
+    networks:
+      - splunknet
+    depends_on:
+      - splunk_hf1
+
+  splunk_uf3:
+    image: splunk/universalforwarder:latest
+    platform: linux/amd64
+    container_name: splunk_uf3
+    hostname: splunk-uf3
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=SplunkDev123!
+      - SPLUNK_ROLE=splunk_universal_forwarder
+      - SPLUNK_FORWARD_SERVER=splunk_hf2:9997
+    volumes:
+      - ./splunk_config/uf3_app:/opt/splunkforwarder/etc/apps/uf3_app
+      - uf3_logs:/logs
+    networks:
+      - splunknet
+    depends_on:
+      - splunk_hf2
+
+  splunk_uf4:
+    image: splunk/universalforwarder:latest
+    platform: linux/amd64
+    container_name: splunk_uf4
+    hostname: splunk-uf4
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+      - SPLUNK_PASSWORD=SplunkDev123!
+      - SPLUNK_ROLE=splunk_universal_forwarder
+      - SPLUNK_FORWARD_SERVER=splunk_hf2:9997
+    volumes:
+      - ./splunk_config/uf4_app:/opt/splunkforwarder/etc/apps/uf4_app
+      - uf4_logs:/logs
+    networks:
+      - splunknet
+    depends_on:
+      - splunk_hf2
+
+  logger_uf1:
+    image: alpine
+    container_name: logger_uf1
+    command: /bin/sh -c "while true; do echo \"$$(date -Iseconds) - UF1 event\" >> /logs/uf.log; sleep 1; done"
+    volumes:
+      - uf1_logs:/logs
+
+  logger_uf2:
+    image: alpine
+    container_name: logger_uf2
+    command: /bin/sh -c "while true; do echo \"$$(date -Iseconds) - UF2 event\" >> /logs/uf.log; sleep 1; done"
+    volumes:
+      - uf2_logs:/logs
+
+  logger_uf3:
+    image: alpine
+    container_name: logger_uf3
+    command: /bin/sh -c "while true; do echo \"$$(date -Iseconds) - UF3 event\" >> /logs/uf.log; sleep 1; done"
+    volumes:
+      - uf3_logs:/logs
+
+  logger_uf4:
+    image: alpine
+    container_name: logger_uf4
+    command: /bin/sh -c "while true; do echo \"$$(date -Iseconds) - UF4 event\" >> /logs/uf.log; sleep 1; done"
+    volumes:
+      - uf4_logs:/logs
