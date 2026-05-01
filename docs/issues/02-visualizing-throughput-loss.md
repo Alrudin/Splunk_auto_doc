@@ -8,9 +8,9 @@ Add visual weighting to the base graph by tying the Edge List metrics to the D3 
 
 ## Acceptance criteria
 
-- [ ] D3 link thickness is proportional to the EPS value provided in the Edge List.
-- [ ] Nodes exceeding the Loss Ratio mock threshold (e.g., > 0) are highlighted with a distinct color (e.g., purple/red).
-- [ ] Automated tests verify the styling functions correctly interpret the EPS and Loss Ratio values from the mock data payload.
+- [x] D3 link thickness is proportional to the EPS value provided in the Edge List.
+- [x] Nodes exceeding the Loss Ratio mock threshold (e.g., > 0) are highlighted with a distinct color (e.g., purple/red).
+- [x] Automated tests verify the styling functions correctly interpret the EPS and Loss Ratio values from the mock data payload.
 
 ## Blocked by
 

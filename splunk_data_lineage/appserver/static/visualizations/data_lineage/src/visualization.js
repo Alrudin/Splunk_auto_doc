@@ -9,6 +9,7 @@ function(
     d3
 ) {
     const dataTransformer = require('./dataTransformer');
+    const styleHelpers = require('./styleHelpers');
 
     return SplunkVisualizationBase.extend({
         initialize: function() {
@@ -67,7 +68,7 @@ function(
                 .data(data.links)
                 .enter().append('line')
                 .attr('stroke', d => d.lossRatio > 0.9 ? 'red' : colorScale(d.eps))
-                .attr('stroke-width', d => Math.max(1, Math.log10(d.eps || 10)))
+                .attr('stroke-width', d => styleHelpers.getLinkThickness(d.eps))
                 .attr('stroke-dasharray', d => d.lossRatio > 0.9 ? '5,5' : 'none')
                 .attr('marker-end', 'url(#arrow)')
                 .on('click', (event, d) => this._drilldown(d, 'link'));
@@ -88,7 +89,7 @@ function(
                 .data(data.nodes)
                 .enter().append('circle')
                 .attr('r', 20)
-                .attr('fill', d => d.type === 'UF' ? '#1e90ff' : (d.type === 'HF' ? '#ff8c00' : '#32cd32'))
+                .attr('fill', d => styleHelpers.getNodeColor(d.type, d.lossRatio))
                 .call(d3.drag()
                     .on('start', dragstarted)
                     .on('drag', dragged)

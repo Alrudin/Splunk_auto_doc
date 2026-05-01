@@ -18,11 +18,13 @@ function formatData(responseData) {
         let targetType = targetId.includes('uf') ? 'UF' : (targetId.includes('hf') ? 'HF' : 'IDX');
 
         if (!nodeMap.has(sourceId)) {
-            nodeMap.set(sourceId, { id: sourceId, type: sourceType, eps: eps });
+            nodeMap.set(sourceId, { id: sourceId, type: sourceType, eps: eps, lossRatio: lossRatio });
             nodes.push(nodeMap.get(sourceId));
+        } else {
+            nodeMap.get(sourceId).lossRatio = Math.max(nodeMap.get(sourceId).lossRatio || 0, lossRatio);
         }
         if (!nodeMap.has(targetId)) {
-            nodeMap.set(targetId, { id: targetId, type: targetType, eps: eps });
+            nodeMap.set(targetId, { id: targetId, type: targetType, eps: eps, lossRatio: 0 });
             nodes.push(nodeMap.get(targetId));
         }
         links.push({

@@ -43,5 +43,8 @@ describe('dataTransformer', () => {
         const result = formatData(responseData);
         expect(result.links[0].lossRatio).toBe(0.95);
         expect(result.links[0].label).toBe('');
+        
+        const ufNode = result.nodes.find(n => n.id === 'uf_server_2');
+        expect(ufNode.lossRatio).toBe(0.95);
     });
 });
