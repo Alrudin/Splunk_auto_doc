@@ -12,6 +12,7 @@ function(
     const styleHelpers = require('./styleHelpers');
     const inspectorPanel = require('./inspectorPanel');
     const filterHelpers = require('./filterHelpers');
+    const aggregationHelpers = require('./aggregationHelpers');
 
     return SplunkVisualizationBase.extend({
         initialize: function() {
@@ -20,6 +21,7 @@ function(
             this.svg = d3.select(this.el).append('svg')
                 .attr('width', '100%')
                 .attr('height', '100%');
+            this.isUfExpanded = false;
         },
 
         getInitialDataParams: function() {
@@ -57,13 +59,15 @@ function(
             
             const { filteredNodes, filteredLinks } = filterHelpers.filterGraph(nodesCopy, linksCopy, currentFilter);
 
+            const { aggregatedNodes, aggregatedLinks } = aggregationHelpers.aggregateGraph(filteredNodes, filteredLinks, this.isUfExpanded);
+
             this.svg.selectAll('*').remove();
             
             const colorScale = d3.scaleSequential(d3.interpolateOranges)
-                .domain([0, d3.max(filteredLinks, d => d.eps) || 1]);
+                .domain([0, d3.max(aggregatedLinks, d => d.eps) || 1]);
 
-            const simulation = d3.forceSimulation(filteredNodes)
-                .force('link', d3.forceLink(filteredLinks).id(d => d.id).distance(150))
+            const simulation = d3.forceSimulation(aggregatedNodes)
+                .force('link', d3.forceLink(aggregatedLinks).id(d => d.id).distance(150))
                 .force('charge', d3.forceManyBody().strength(-800))
                 .force('center', d3.forceCenter(width / 2, height / 2))
                 .force('collide', d3.forceCollide().radius(60).iterations(3))
@@ -85,7 +89,7 @@ function(
             const link = this.svg.append('g')
                 .attr('stroke-opacity', 0.6)
                 .selectAll('line')
-                .data(filteredLinks)
+                .data(aggregatedLinks)
                 .enter().append('line')
                 .attr('stroke', d => d.lossRatio > 0.9 ? 'red' : colorScale(d.eps))
                 .attr('stroke-width', d => styleHelpers.getLinkThickness(d.eps))
@@ -95,7 +99,7 @@ function(
 
             const edgeLabel = this.svg.append('g')
                 .selectAll('text')
-                .data(filteredLinks)
+                .data(aggregatedLinks)
                 .enter().append('text')
                 .attr('font-size', '10px')
                 .attr('fill', '#ccc')
@@ -106,7 +110,7 @@ function(
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 1.5)
                 .selectAll('circle')
-                .data(filteredNodes)
+                .data(aggregatedNodes)
                 .enter().append('circle')
                 .attr('r', 20)
                 .attr('fill', d => styleHelpers.getNodeColor(d.type, d.lossRatio))
@@ -118,7 +122,7 @@ function(
 
             const label = this.svg.append('g')
                 .selectAll('text')
-                .data(filteredNodes)
+                .data(aggregatedNodes)
                 .enter().append('text')
                 .attr('dy', 35)
                 .style('font-size', '14px')
@@ -131,7 +135,7 @@ function(
                 .text(d => d.id);
 
             simulation.on('tick', () => {
-                filteredNodes.forEach(d => {
+                aggregatedNodes.forEach(d => {
                     if (d.type === 'UF') d.y = Math.max(20, Math.min(height * 0.2, d.y));
                     else if (d.type === 'HF') d.y = height * 0.5;
                     else d.y = Math.max(height * 0.8, Math.min(height - 20, d.y));
@@ -173,6 +177,12 @@ function(
         },
         
         _drilldown: function(d, type) {
+            if (type === 'node' && d.isAggregated) {
+                this.isUfExpanded = true;
+                inspectorPanel.hide(this.el);
+                this.updateView();
+                return;
+            }
             inspectorPanel.render(this.el, d, type);
         },
         
@@ -206,6 +216,7 @@ function(
                 });
                 
                 select.on('change', () => {
+                    this.isUfExpanded = false; // Reset expansion on filter change
                     inspectorPanel.hide(this.el); // Hide inspector when filtering
                     this.updateView(); // Trigger re-render with new filter
                 });

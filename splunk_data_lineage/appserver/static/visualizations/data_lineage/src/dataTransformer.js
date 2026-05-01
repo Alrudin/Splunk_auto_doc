@@ -37,27 +37,7 @@ function formatData(responseData) {
         });
     });
 
-    // UF Aggregation Logic
-    const ufNodes = nodes.filter(n => n.type === 'UF');
-    if (ufNodes.length > 10) {
-        ufNodes.sort((a, b) => b.eps - a.eps);
-        const top10 = new Set(ufNodes.slice(0, 10).map(n => n.id));
-        const otherUfId = "Aggregated UFs (" + (ufNodes.length - 10) + ")";
-        nodeMap.set(otherUfId, { id: otherUfId, type: 'UF', eps: 0 });
-        nodes.push(nodeMap.get(otherUfId));
 
-        for (let i = links.length - 1; i >= 0; i--) {
-            if (nodeMap.get(links[i].source).type === 'UF' && !top10.has(links[i].source)) {
-                links[i].source = otherUfId;
-            }
-        }
-        
-        for (let i = nodes.length - 1; i >= 0; i--) {
-            if (nodes[i].type === 'UF' && !top10.has(nodes[i].id) && nodes[i].id !== otherUfId) {
-                nodes.splice(i, 1);
-            }
-        }
-    }
 
     return { nodes: nodes, links: links };
 }
