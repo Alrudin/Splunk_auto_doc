@@ -39,12 +39,15 @@ function(
                 const eps = parseFloat(row[2]) || 0;
                 const lossRatio = parseFloat(row[3]) || 0;
 
+                let sourceType = sourceId.includes('uf') ? 'UF' : (sourceId.includes('hf') ? 'HF' : 'IDX');
+                let targetType = targetId.includes('uf') ? 'UF' : (targetId.includes('hf') ? 'HF' : 'IDX');
+
                 if (!nodeMap.has(sourceId)) {
-                    nodeMap.set(sourceId, { id: sourceId, type: 'UF', eps: eps });
+                    nodeMap.set(sourceId, { id: sourceId, type: sourceType, eps: eps });
                     nodes.push(nodeMap.get(sourceId));
                 }
                 if (!nodeMap.has(targetId)) {
-                    nodeMap.set(targetId, { id: targetId, type: 'HF_IDX', eps: eps });
+                    nodeMap.set(targetId, { id: targetId, type: targetType, eps: eps });
                     nodes.push(nodeMap.get(targetId));
                 }
                 links.push({
@@ -94,11 +97,11 @@ function(
 
             const simulation = d3.forceSimulation(data.nodes)
                 .force('link', d3.forceLink(data.links).id(d => d.id).distance(150))
-                .force('charge', d3.forceManyBody().strength(-300))
+                .force('charge', d3.forceManyBody().strength(-800))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collide', d3.forceCollide().radius(25).iterations(2))
-                .force('x', d3.forceX().strength(0.1))
-                .force('y', d3.forceY().strength(0.1));
+                .force('collide', d3.forceCollide().radius(60).iterations(3))
+                .force('x', d3.forceX().strength(0.05))
+                .force('y', d3.forceY().strength(0.05));
 
             this.svg.append('defs').append('marker')
                 .attr('id', 'arrow')
@@ -139,7 +142,7 @@ function(
                 .data(data.nodes)
                 .enter().append('circle')
                 .attr('r', 20)
-                .attr('fill', d => d.type === 'UF' ? '#1e90ff' : '#32cd32')
+                .attr('fill', d => d.type === 'UF' ? '#1e90ff' : (d.type === 'HF' ? '#ff8c00' : '#32cd32'))
                 .call(d3.drag()
                     .on('start', dragstarted)
                     .on('drag', dragged)
@@ -150,16 +153,22 @@ function(
                 .selectAll('text')
                 .data(data.nodes)
                 .enter().append('text')
-                .attr('dx', 25)
-                .attr('dy', '.35em')
-                .style('font-size', '12px')
+                .attr('dy', 35)
+                .style('font-size', '14px')
+                .style('font-weight', 'bold')
                 .style('fill', '#fff')
+                .style('text-anchor', 'middle')
+                .style('stroke', '#000')
+                .style('stroke-width', '3px')
+                .style('paint-order', 'stroke')
                 .text(d => d.id);
 
             simulation.on('tick', () => {
                 data.nodes.forEach(d => {
-                    if (d.type === 'UF') d.x = Math.max(20, Math.min(width * 0.4, d.x));
-                    else d.x = Math.max(width * 0.6, Math.min(width - 20, d.x));
+                    if (d.type === 'UF') d.y = Math.max(20, Math.min(height * 0.2, d.y));
+                    else if (d.type === 'HF') d.y = height * 0.5;
+                    else d.y = Math.max(height * 0.8, Math.min(height - 20, d.y));
+                    d.x = Math.max(20, Math.min(width - 20, d.x));
                 });
 
                 link

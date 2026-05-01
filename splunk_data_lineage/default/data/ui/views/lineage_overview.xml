@@ -7,6 +7,13 @@
       <choice value="*">All</choice>
       <default>*</default>
       <initialValue>*</initialValue>
+      <fieldForLabel>sourcetype</fieldForLabel>
+      <fieldForValue>sourcetype</fieldForValue>
+      <search>
+        <query>index=summary_lineage search_name="Generate Data Lineage Topology" | stats count by sourcetype</query>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </search>
     </input>
   </fieldset>
   <row>
@@ -14,10 +21,10 @@
       <title>Topology Map</title>
       <viz type="splunk_data_lineage.data_lineage">
         <search>
-          <query>index=summary_lineage search_name="Generate Data Lineage Topology"
-| stats sum(events_per_sec) as events_per_sec max(loss_ratio) as loss_ratio by sourceNode, targetNode
+          <query>index=summary_lineage search_name="Generate Data Lineage Topology" sourcetype="$sourcetype_tok$"
+| stats sum(events_per_sec) as events_per_sec max(loss_ratio) as loss_ratio values(sourcetype) as sourcetype by sourceNode, targetNode
 | rename sourceNode as source, targetNode as target
-| table source, target, events_per_sec, loss_ratio</query>
+| table source, target, events_per_sec, loss_ratio, sourcetype</query>
           <earliest>-60m@m</earliest>
           <latest>now</latest>
         </search>
