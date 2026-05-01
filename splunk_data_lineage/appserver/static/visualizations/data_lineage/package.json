@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4"
   }

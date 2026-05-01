@@ -10,6 +10,7 @@ function(
 ) {
     const dataTransformer = require('./dataTransformer');
     const styleHelpers = require('./styleHelpers');
+    const inspectorPanel = require('./inspectorPanel');
 
     return SplunkVisualizationBase.extend({
         initialize: function() {
@@ -153,27 +154,7 @@ function(
         },
         
         _drilldown: function(d, type) {
-            let drilldownData = {};
-            if (type === 'link') {
-                drilldownData = {
-                    action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
-                    data: {
-                        'source': d.source.id,
-                        'target': d.target.id,
-                        'eps': String(d.eps),
-                        'loss_ratio': String(d.lossRatio)
-                    }
-                };
-            } else {
-                drilldownData = {
-                    action: SplunkVisualizationBase.FIELD_VALUE_DRILLDOWN,
-                    data: {
-                        'node': d.id,
-                        'type': d.type
-                    }
-                };
-            }
-            this.drilldown(drilldownData);
+            inspectorPanel.render(this.el, d, type);
         }
     });
 });

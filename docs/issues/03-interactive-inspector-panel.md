@@ -8,10 +8,10 @@ Implement the Inspector Panel component that appears when a user clicks on a nod
 
 ## Acceptance criteria
 
-- [ ] Clicking a node or edge opens the Inspector Panel on the side of the canvas.
-- [ ] Panel populates instantly with in-memory data associated with the clicked element.
-- [ ] Panel includes a functional "Open in Search" hyperlink containing the host/sourcetype parameters.
-- [ ] Automated tests verify the UI component's state correctly binds to the selected node's properties.
+- [x] Clicking a node or edge opens the Inspector Panel on the side of the canvas.
+- [x] Panel populates instantly with in-memory data associated with the clicked element.
+- [x] Panel includes a functional "Open in Search" hyperlink containing the host/sourcetype parameters.
+- [x] Automated tests verify the UI component's state correctly binds to the selected node's properties.
 
 ## Blocked by
 
