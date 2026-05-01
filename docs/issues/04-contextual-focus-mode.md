@@ -8,10 +8,10 @@ Introduce a global "Focus Mode" dropdown filter allowing users to select a speci
 
 ## Acceptance criteria
 
-- [ ] A dropdown menu populated with all distinct sourcetypes available in the current dataset.
-- [ ] Selecting a sourcetype completely removes non-matching nodes and edges from the visual graph.
-- [ ] Clearing the filter restores the full topology instantly without querying the backend.
-- [ ] Automated tests verify the filtering function correctly isolates the node/link arrays based on the target string.
+- [x] A dropdown menu populated with all distinct sourcetypes available in the current dataset.
+- [x] Selecting a sourcetype completely removes non-matching nodes and edges from the visual graph.
+- [x] Clearing the filter restores the full topology instantly without querying the backend.
+- [x] Automated tests verify the filtering function correctly isolates the node/link arrays based on the target string.
 
 ## Blocked by
 

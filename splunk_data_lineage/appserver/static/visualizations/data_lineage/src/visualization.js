@@ -11,6 +11,7 @@ function(
     const dataTransformer = require('./dataTransformer');
     const styleHelpers = require('./styleHelpers');
     const inspectorPanel = require('./inspectorPanel');
+    const filterHelpers = require('./filterHelpers');
 
     return SplunkVisualizationBase.extend({
         initialize: function() {
@@ -33,18 +34,36 @@ function(
         },
 
         updateView: function(data, config) {
-            if (!data) return;
+            // Keep a master copy of the data if new data is provided
+            if (data) {
+                // deep copy to avoid D3 mutation affecting master copy
+                this.masterData = {
+                    nodes: data.nodes.map(n => Object.assign({}, n)),
+                    links: data.links.map(l => Object.assign({}, l))
+                };
+            }
+            if (!this.masterData) return;
             
             const width = this.$el.width() || 800;
             const height = this.$el.height() || 600;
 
+            this._renderDropdown();
+
+            const currentFilter = this.$el.find('#sourcetype-filter').val() || 'All';
+            
+            // Deep copy again for D3 to mutate
+            const nodesCopy = this.masterData.nodes.map(n => Object.assign({}, n));
+            const linksCopy = this.masterData.links.map(l => Object.assign({}, l));
+            
+            const { filteredNodes, filteredLinks } = filterHelpers.filterGraph(nodesCopy, linksCopy, currentFilter);
+
             this.svg.selectAll('*').remove();
             
             const colorScale = d3.scaleSequential(d3.interpolateOranges)
-                .domain([0, d3.max(data.links, d => d.eps) || 1]);
+                .domain([0, d3.max(filteredLinks, d => d.eps) || 1]);
 
-            const simulation = d3.forceSimulation(data.nodes)
-                .force('link', d3.forceLink(data.links).id(d => d.id).distance(150))
+            const simulation = d3.forceSimulation(filteredNodes)
+                .force('link', d3.forceLink(filteredLinks).id(d => d.id).distance(150))
                 .force('charge', d3.forceManyBody().strength(-800))
                 .force('center', d3.forceCenter(width / 2, height / 2))
                 .force('collide', d3.forceCollide().radius(60).iterations(3))
@@ -66,7 +85,7 @@ function(
             const link = this.svg.append('g')
                 .attr('stroke-opacity', 0.6)
                 .selectAll('line')
-                .data(data.links)
+                .data(filteredLinks)
                 .enter().append('line')
                 .attr('stroke', d => d.lossRatio > 0.9 ? 'red' : colorScale(d.eps))
                 .attr('stroke-width', d => styleHelpers.getLinkThickness(d.eps))
@@ -76,7 +95,7 @@ function(
 
             const edgeLabel = this.svg.append('g')
                 .selectAll('text')
-                .data(data.links)
+                .data(filteredLinks)
                 .enter().append('text')
                 .attr('font-size', '10px')
                 .attr('fill', '#ccc')
@@ -87,7 +106,7 @@ function(
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 1.5)
                 .selectAll('circle')
-                .data(data.nodes)
+                .data(filteredNodes)
                 .enter().append('circle')
                 .attr('r', 20)
                 .attr('fill', d => styleHelpers.getNodeColor(d.type, d.lossRatio))
@@ -99,7 +118,7 @@ function(
 
             const label = this.svg.append('g')
                 .selectAll('text')
-                .data(data.nodes)
+                .data(filteredNodes)
                 .enter().append('text')
                 .attr('dy', 35)
                 .style('font-size', '14px')
@@ -112,7 +131,7 @@ function(
                 .text(d => d.id);
 
             simulation.on('tick', () => {
-                data.nodes.forEach(d => {
+                filteredNodes.forEach(d => {
                     if (d.type === 'UF') d.y = Math.max(20, Math.min(height * 0.2, d.y));
                     else if (d.type === 'HF') d.y = height * 0.5;
                     else d.y = Math.max(height * 0.8, Math.min(height - 20, d.y));
@@ -155,6 +174,66 @@ function(
         
         _drilldown: function(d, type) {
             inspectorPanel.render(this.el, d, type);
+        },
+        
+        _renderDropdown: function() {
+            let container = this.$el.find('#filter-container');
+            if (container.length === 0) {
+                container = $('<div id="filter-container"></div>').css({
+                    position: 'absolute',
+                    top: '10px',
+                    left: '10px',
+                    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    border: '1px solid #444',
+                    color: '#fff',
+                    fontFamily: 'sans-serif',
+                    zIndex: 1000
+                });
+                
+                const label = $('<label for="sourcetype-filter">Focus Mode (Sourcetype): </label>').css({
+                    fontSize: '12px',
+                    marginRight: '10px'
+                });
+                
+                const select = $('<select id="sourcetype-filter"></select>').css({
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    border: '1px solid #555',
+                    padding: '4px',
+                    borderRadius: '3px'
+                });
+                
+                select.on('change', () => {
+                    inspectorPanel.hide(this.el); // Hide inspector when filtering
+                    this.updateView(); // Trigger re-render with new filter
+                });
+                
+                container.append(label).append(select);
+                this.$el.append(container);
+            }
+            
+            const select = container.find('select');
+            const currentVal = select.val();
+            
+            // Gather unique sourcetypes
+            const sourcetypes = new Set();
+            this.masterData.links.forEach(l => {
+                if (l.sourcetype) sourcetypes.add(l.sourcetype);
+            });
+            
+            // Rebuild options
+            select.empty();
+            select.append('<option value="All">All Sourcetypes</option>');
+            Array.from(sourcetypes).sort().forEach(st => {
+                select.append(`<option value="${st}">${st}</option>`);
+            });
+            
+            // Restore value if it still exists
+            if (currentVal && (currentVal === 'All' || sourcetypes.has(currentVal))) {
+                select.val(currentVal);
+            }
         }
     });
 });

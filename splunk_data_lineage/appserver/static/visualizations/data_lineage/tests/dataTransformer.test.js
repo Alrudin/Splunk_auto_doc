@@ -30,7 +30,8 @@ describe('dataTransformer', () => {
             target: 'hf_server_1',
             eps: 10.5,
             lossRatio: 0,
-            label: 'syslog'
+            label: 'syslog',
+            sourcetype: 'syslog'
         });
     });
 
@@ -43,6 +44,7 @@ describe('dataTransformer', () => {
         const result = formatData(responseData);
         expect(result.links[0].lossRatio).toBe(0.95);
         expect(result.links[0].label).toBe('');
+        expect(result.links[0].sourcetype).toBe('');
         
         const ufNode = result.nodes.find(n => n.id === 'uf_server_2');
         expect(ufNode.lossRatio).toBe(0.95);

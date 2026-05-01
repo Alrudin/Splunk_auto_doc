@@ -32,7 +32,8 @@ function formatData(responseData) {
             target: targetId,
             eps: eps,
             lossRatio: lossRatio,
-            label: row[4] || ''
+            label: row[4] || '',
+            sourcetype: row[4] || ''
         });
     });
 
